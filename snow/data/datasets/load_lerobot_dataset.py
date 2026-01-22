@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -35,12 +36,14 @@ VIDEO_PATH = "videos/chunk-{episode_chunk:03d}/{video_key}/episode_{episode_inde
 
 class LerobotDataset:
     def __init__(
-            self,
-            dataset_path: str,
-            modality_id: str,
-            video_backend: str = "ffmpeg",
-            video_backend_kwargs: dict = None,
-        ):
+        self,
+        dataset_index: int,
+        dataset_path: str,
+        modality_id: str,
+        video_backend: str = "ffmpeg",
+        video_backend_kwargs: dict = None,
+    ):
+        self.dataset_index = dataset_index
         self.dataset_path = Path(dataset_path)
         self.robot_modality = ROBOT_CONFIG[modality_id]
         self.video_backend = video_backend
@@ -73,14 +76,16 @@ class LerobotDataset:
             self.stats_meta = json.load(f)
 
         # Initialize dependency parameters
+        self.total_episodes = self.info_meta["total_episodes"]
         self.chunks_size = self.info_meta["chunks_size"]
         self.features = self.info_meta["features"]
-
+        self.transform = None
+        self.action_dimension = self.robot_modality["action"].delta_indices
 
 
     def __len__(self) -> int:
         """Return the number of episodes in the dataset."""
-        return len(self.episodes_meta)
+        return self.total_episodes
 
     def _load_parquet_data(self, episode_index) -> pd.DataFrame:
         """Load single parquet in the dataset."""
@@ -89,9 +94,13 @@ class LerobotDataset:
         origin_df = pd.read_parquet(parquet_path)
         action_language_df = pd.DataFrame()
 
-        # Add language into data
+        # Check and add language into data
         assert "language" in self.robot_modality, f"Language should be supplied in Robot modality."
-        action_language_df["annotation.language"] = origin_df[ORIGINAL_KEY].apply(lambda x: self.task_map[x])
+        assert len(self.robot_modality["language"].modality_keys) == 1 and len(self.robot_modality["language"].delta_indices) == 1, (
+            f"Length of language modality_keys and delta_indices should be equal to 1"
+        )
+        language_modality_key = self.robot_modality["language"].modality_keys[0]
+        action_language_df[f"language.{language_modality_key}"] = origin_df[ORIGINAL_KEY].apply(lambda x: self.task_map[x])
 
         # Save partly actions from modality
         assert "action" in self.robot_modality and "action" in self.modality_meta, f"Action should be supplied in Robot config and modality."
@@ -113,11 +122,11 @@ class LerobotDataset:
                 video_backend=self.video_backend,
                 video_backend_kwargs=self.video_backend_kwargs,
             )
-            video_data[f"video.{video_key}"] = list(frames_arr)
+            video_data[f"observation.images.{video_key}"] = list(frames_arr)
         return video_data
 
 
-    def __getitem__(self, item) -> pd.DataFrame:
+    def _get_episode_data(self, episode_index) -> pd.DataFrame:
         """
         Get data of an episode from the dataset.
         :return dataframe contain:
@@ -125,8 +134,8 @@ class LerobotDataset:
             language: shape of (length_episode, 1),
             images: shape of (length_episode, height_video, width_video, 3),
         """
-        assert item < len(self.episodes_meta), f"get lerobot episode index {item} > length of dataset."
-        episode_meta = self.episodes_meta[item]
+        assert episode_index < len(self.episodes_meta), f"get lerobot episode index {episode_index} > length of dataset."
+        episode_meta = self.episodes_meta[episode_index]
         episode_index = episode_meta["episode_index"]
         length = episode_meta["length"]
 
@@ -141,14 +150,77 @@ class LerobotDataset:
 
         return episode_data
 
+    def get_episode_effect_length(self, episode_index: int) -> int:
+        """Get effective episode length"""
+        return max(0, self.episodes_meta[episode_index]["length"] - len(self.action_dimension))
+
+    def count_total_frames(self) -> int:
+        """Count the total number of frames in the dataset."""
+        return sum([self.get_episode_effect_length(episode_index) for episode_index in range(self.total_episodes)])
+
+    def initialize_schedule(self):
+        """Initialize schedule contains (dataset_index, episode_index, step_index)."""
+        schedule = []
+        for episode_index in range(self.total_episodes):
+            for step_index in range(self.get_episode_effect_length(episode_index)):
+                schedule.append(np.array([self.dataset_index, episode_index, step_index], dtype=np.int32))
+        return np.array(schedule, dtype=np.int32)
+
+    def get_step_data(self, episode_index, step_index) -> Dict:
+        """
+        Get single step data of an episode from the dataset.
+        :param episode_index: index of episode
+        :param step_index: index of step
+        :return: step_data
+            {
+                'language':
+                    {
+                        'task': str,
+                    }
+                'action':
+                    {
+                        'root_pos': np.ndarray, shape of (action_horizon, 3),
+                        'root_rot': np.ndarray, shape of (action_horizon, 4),
+                        'dof_pos': np.ndarray, shape of (action_horizon, 23),
+                    }
+                'observation.images':
+                    {
+                        'front': np.ndarray, shape of (height_image, width_image, 3),
+                    }
+            }
+        """
+        # Varify index of episode should be loss than effective length
+        assert step_index < self.get_episode_effect_length(episode_index), f"step_index {step_index} should be less that length of episode."
+
+        # Extract data of single step
+        step_data = {}
+        episode_data = self._get_episode_data(episode_index)
+        for modality_type in self.robot_modality:
+            step_data[modality_type] = {}
+            for modality_key in self.robot_modality[modality_type].modality_keys:
+                # indices of needing extract modality data, special for action which has horizon
+                delta_indices = self.robot_modality[modality_type].delta_indices
+
+                # Extract steps from dataframe
+                step_delta_indices = [step_index + delta_index for delta_index in delta_indices]
+                modality_data = episode_data[f"{modality_type}.{modality_key}"].iloc[step_delta_indices]
+
+                # Convert series to np.ndarray
+                step_data[modality_type][modality_key] = np.vstack(
+                    [modality_data.iloc[i] for i in delta_indices], dtype=np.float32
+                ) if modality_type in ["state", "action"] else modality_data.iloc[0]
+
+        return step_data
 
 
 if __name__ == "__main__":
-    dataset_path = "/home/wsj/Desktop/code/VLA/SNOW/datasets/amass"
-    modality_id = "YmBot"
-    video_backend = "ffmpeg"
-    dataset = LerobotDataset(dataset_path=dataset_path, modality_id=modality_id, video_backend=video_backend)
-    data = dataset[0]
+
+    dataset = LerobotDataset(
+        dataset_path="/home/wsj/Desktop/code/VLA/SNOW/datasets/amass",
+        modality_id="YmBot",
+        video_backend="ffmpeg"
+    )
+    data = dataset.get_step_data(0, 20)
     print(data)
 
 

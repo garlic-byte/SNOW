@@ -24,3 +24,9 @@ class DataConfig:
 
     video_backend_kwargs: dict = None
     """Keyword arguments passed to ffmpeg."""
+
+    shard_size: int = 2**10
+    """Shard size to use."""
+
+    seed: int = 64
+    """Seed for random number generator."""

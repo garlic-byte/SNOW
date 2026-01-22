@@ -1,6 +1,6 @@
 
 from snow.config import SnowConfig, DataConfig, TrainConfig
-from snow.experient.data_pipeline import DataPipeline
+from snow.data.data_pipeline import DataPipeline
 
 
 def run_train(model_config: SnowConfig, data_config: DataConfig, train_config: TrainConfig):
