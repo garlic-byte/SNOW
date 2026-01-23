@@ -1,4 +1,5 @@
 import PIL
+import cv2
 import numpy as np
 import albumentations as A
 from typing import Dict, Optional
@@ -44,14 +45,14 @@ class ImageProcessor:
 
     def __init__(
         self,
-        image_shape: tuple[int, int] | None = None,
-        image_resize: tuple[int, int] | None = None,
+        inter_size: tuple[int, int],
+        target_size: tuple[int, int],
         crop_fraction: float = 0.95,
         color_jitter: bool = True,
     ):
         # Initialize parameters of processor
-        self.input_shape = image_shape
-        self.image_resize = image_resize
+        self.inter_size = inter_size
+        self.target_size = target_size
         self.crop_fraction = crop_fraction
         self.color_jitter = color_jitter
 
@@ -72,29 +73,32 @@ class ImageProcessor:
         train_transforms = inference_transforms = []
 
         # Add fraction crop transformation
+        # TODO revise size of target
         assert 0 < self.crop_fraction <= 1, f"crop_fraction must be between 0 and 1"
-        train_transforms.append(A.RandomCrop(
-            height=int(self.input_shape[0] * self.crop_fraction),
-            width=int(self.input_shape[1] * self.crop_fraction),
-            p=1.0
-        ))
+        train_transforms += [
+            A.Resize(height=self.inter_size[0], width=self.inter_size[1], p=1.0),
+            A.RandomCrop(height=int(self.inter_size[0] * self.crop_fraction),
+                         width=int(self.inter_size[1] * self.crop_fraction),
+                         p=1.0),
+        ]
         # For eval model, use center crop with images.
-        inference_transforms.append(A.CenterCrop(
-            height=int(self.input_shape[0] * self.crop_fraction),
-            width=int(self.input_shape[1] * self.crop_fraction),
-            p=1.0
-        ))
+        inference_transforms += [
+            A.Resize(height=self.inter_size[0], width=self.inter_size[1], p=1.0),
+            A.CenterCrop(height=int(self.inter_size[0] * self.crop_fraction),
+                         width=int(self.inter_size[1] * self.crop_fraction),
+                         p=1.0),
+        ]
 
         # Add resize transformation
-        if self.image_resize:
+        if self.target_size:
             train_transforms.append(A.Resize(
-                height=self.image_resize[0],
-                width=self.image_resize[1],
+                height=self.target_size[0],
+                width=self.target_size[1],
                 p=1.0
             ))
             inference_transforms.append(A.Resize(
-                height=self.image_resize[0],
-                width=self.image_resize[1],
+                height=self.target_size[0],
+                width=self.target_size[1],
                 p=1.0
             ))
 
@@ -119,9 +123,10 @@ class ImageProcessor:
         :param images: Dict mapping image key -> image numpy array (HWC format).
             Expected shape: (height, width, channels)
             Expected dtype: uint8 [0, 255]
-        :return: processed images, dict mapping image key -> processed numpy array
+        :return: processed images, list of processed numpy array
             dtype: uint8 [0, 255], shape (resize[0], resize[1], channels)
         """
+        assert self.image_transform is not None, f"image_transform must be set for {self.__class__.__name__}"
         processed_images = []
 
         for key, image in images.items():
@@ -146,12 +151,13 @@ if __name__ == "__main__":
     }
 
     processor = ImageProcessor(
-        image_shape=(512, 512),
-        image_resize=(224, 224),
+        inter_size=(244, 244),
+        target_size=(224, 224),
         crop_fraction=0.95,
         color_jitter=True
     )
 
+    processor.train()
     processed_single = processor(sample_images)
     for idx, image in enumerate(processed_single):
         image.save(f"{idx}.png")

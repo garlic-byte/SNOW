@@ -1,4 +1,5 @@
 import time
+from collections import defaultdict
 
 import numpy as np
 from torch.utils.data import IterableDataset, get_worker_info, DataLoader
@@ -49,6 +50,40 @@ class ShardCacheDataset(IterableDataset):
         self._executor = None
         self.cur_schedule_index = 0
         self.filter_schedules = []
+        self.transformer = None
+
+    def get_statistics(self) -> dict[str, np.ndarray]:
+        """Get and merge statistics which only contain 'max' and 'min' values of action."""
+
+        modality_meta_action = self.datasets[0].get_modality_info()
+        # Collect all stats
+        total_stats = {}
+        for dataset in self.datasets:
+            # Varify modalities are same
+            assert modality_meta_action == dataset.get_modality_info(), (
+                f"dataset {dataset.get_dataset_index()} modality information is not same."
+            )
+            stats = dataset.get_stats()
+            for modality_key in stats:
+                # Initialize total stats
+                if modality_key not in total_stats:
+                    total_stats[modality_key] = defaultdict(list)
+                # Collect all information into list
+                for stats_key, stats_value in stats[modality_key].items():
+                    total_stats[modality_key][stats_key].append(stats_value)
+
+        # Calculate all stats
+        final_stats = {}
+        for modality_key in total_stats:
+            final_stats[modality_key] = {}
+            final_stats[modality_key]['max'] = np.max(np.vstack(total_stats[modality_key]['max']), axis=0)
+            final_stats[modality_key]['min'] = np.min(np.vstack(total_stats[modality_key]['min']), axis=0)
+        return final_stats
+
+
+    def set_transform(self, transformer):
+        """API for setting the transform which can process images, languages and actions."""
+        self.transformer = transformer
 
     def _reset_schedules(self):
         """Create random schedules for loading datasets."""
@@ -93,7 +128,8 @@ class ShardCacheDataset(IterableDataset):
             if self.cur_schedule_index >= len(self.filter_schedules):
                 self._reset_schedules()
             dataset_index, episode_index, step_index = self.filter_schedules[self.cur_schedule_index]
-            shard_vessels.append(self.datasets[dataset_index].get_step_data(episode_index, step_index))
+            step_data = self.datasets[dataset_index].get_step_data(episode_index, step_index)
+            shard_vessels.append(self.transformer(step_data))
             self.cur_schedule_index += 1
             count_vessel += 1
         self.shard_vessels = shard_vessels
@@ -113,6 +149,8 @@ class ShardCacheDataset(IterableDataset):
 
     def __iter__(self):
         """Get iterator for ShardCacheDataset."""
+
+        assert self.transformer is not None, "ShardCache requires transformer to be initialized."
         self._executor = ThreadPoolExecutor(max_workers=1)
         self.start_load_data()
         while True:

@@ -1,6 +1,7 @@
 
 import json
 import os
+import time
 from pathlib import Path
 from typing import Dict
 
@@ -87,6 +88,38 @@ class LerobotDataset:
         """Return the number of episodes in the dataset."""
         return self.total_episodes
 
+    def get_stats(self):
+        """
+        Return the statistics of the dataset.
+        :return dictory mapping action-joint-group -> stats-key -> stats-value:
+            {
+                action.root_pos: {
+                    'max': np.ndarray, shape of (length_joint_group)
+                }
+            }
+        """
+        stats = {}
+
+        assert 'action' in self.stats_meta, "stats_meta does not contain 'action' key."
+        for modality_key in self.robot_modality['action'].modality_keys:
+            start_index = self.modality_meta['action'][modality_key]['start']
+            end_index = self.modality_meta['action'][modality_key]['end']
+            stats[f"{modality_key}"] = {}
+            for stats_key in ['max', 'min']:
+                stats[f"{modality_key}"][stats_key] = (
+                    np.array(self.stats_meta['action'][stats_key][start_index:end_index], dtype=np.float32)
+                )
+
+        return stats
+
+    def get_modality_info(self):
+        """Get the modality information."""
+        return self.modality_meta['action']
+
+    def get_dataset_index(self):
+        """Get the dataset index."""
+        return self.dataset_index
+
     def _load_parquet_data(self, episode_index) -> pd.DataFrame:
         """Load single parquet in the dataset."""
         episode_chunk = episode_index // self.chunks_size
@@ -147,7 +180,6 @@ class LerobotDataset:
         video_indices = np.arange(effective_length)
         video_data = self._load_images_data(episode_index, video_indices)
         episode_data = pd.concat([episode_data, video_data], axis=1)
-
         return episode_data
 
     def get_episode_effect_length(self, episode_index: int) -> int:
@@ -216,11 +248,20 @@ class LerobotDataset:
 if __name__ == "__main__":
 
     dataset = LerobotDataset(
+        dataset_index=0,
         dataset_path="/home/wsj/Desktop/code/VLA/SNOW/datasets/amass",
         modality_id="YmBot",
-        video_backend="ffmpeg"
+        video_backend="torchcodec"
     )
-    data = dataset.get_step_data(0, 20)
-    print(data)
+
+    count_time = []
+    for i in range(10):
+        start_time = time.time()
+        data = dataset.get_step_data(0, 20)
+        end_time = time.time()
+        # print(f"step {i} took {end_time - start_time:2f} seconds.")
+        count_time.append(end_time - start_time)
+    print(f"average time per episode: {sum(count_time) / len(count_time):2f} seconds.")
+
 
 

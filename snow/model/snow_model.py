@@ -1,5 +1,6 @@
 from transformers import PreTrainedModel, BatchFeature
 import torch
+import tree
 
 from snow.config import SnowConfig
 from snow.model.modules import SnowActionHead
@@ -15,15 +16,29 @@ class SnowModel(PreTrainedModel):
         self.backbone = SnowBackbone(config)
         self.action_head = SnowActionHead(config).to(dtype=self.backbone.dtype)
 
-    def forward(self, backbone_inputs, action_input) -> BatchFeature:
-        hidden_features = self.backbone(backbone_inputs)[0]  # shape (2, seq_len, 2048)
-        image_mask = backbone_inputs["input_ids"] == self.backbone.model.config.image_token_id  # 151655
+    @property
+    def dtype(self):
+        return next(iter(self.parameters())).dtype
 
-        backbone_output = BatchFeature({
-            "backbone_features": hidden_features,
-            "backbone_attention_mask": backbone_inputs["attention_mask"] == 1,
-            "image_mask": image_mask,
-        })
+    def prepare_input(self, inputs):
+        """Change dtype and convert to BatchFeature."""
+        def to_dtype(x):
+            if torch.is_floating_point(x):
+                return x.to(dtype=self.dtype)
+            else:
+                return x
+        batch_backbone_input = BatchFeature(data=inputs["backbone_input"])
+        batch_action_input = BatchFeature(data=inputs["action_input"])
+
+        batch_backbone_input = tree.map_structure(to_dtype, batch_backbone_input)
+        batch_action_input = tree.map_structure(to_dtype, batch_action_input)
+        return batch_backbone_input, batch_action_input
+
+
+    def forward(self, inputs) -> BatchFeature:
+        backbone_input, action_input = self.prepare_input(inputs)
+
+        backbone_output = self.backbone(backbone_input)
         batch_output = self.action_head(backbone_output, action_input)
 
         return batch_output

@@ -16,10 +16,7 @@ class DataConfig:
     config_path: str = None
     """Path to the configuration file containing data, model, training."""
 
-    num_gpus: int = 1
-    """Number of GPUs to use."""
-
-    video_backend: str = "ffmpeg"
+    video_backend: str = "torchcodec"
     """Video backend to use."""
 
     video_backend_kwargs: dict = None
@@ -30,3 +27,16 @@ class DataConfig:
 
     seed: int = 64
     """Seed for random number generator."""
+
+    inter_size: tuple[int, int] = (244, 244)
+    """Size of interim image."""
+
+    crop_fraction: float = 0.95
+    """Fraction of images to crop."""
+
+    target_size: tuple[int, int] = (224, 224)
+    """Size of target image."""
+
+    color_jitter: bool = True
+    """Whether to apply color jitter."""
+

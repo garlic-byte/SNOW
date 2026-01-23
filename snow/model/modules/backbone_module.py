@@ -3,7 +3,8 @@ import os
 from sympy.printing.pytorch import torch
 
 from snow.config import SnowConfig
-from transformers import Qwen3VLForConditionalGeneration, AutoProcessor, Qwen3VLModel, PreTrainedModel, AutoConfig, AutoModel
+from transformers import Qwen3VLForConditionalGeneration, AutoProcessor, Qwen3VLModel, PreTrainedModel, AutoConfig, \
+    AutoModel, BatchFeature
 
 
 class SnowBackbone(PreTrainedModel):
@@ -56,5 +57,12 @@ class SnowBackbone(PreTrainedModel):
         print(f"[Model loaded] Total trainable params: {total_trainable_params:,}, training radio: {total_trainable_params / total_params * 100:.2f}%")
 
 
-    def forward(self, backbone_inputs):
-        return self.model(**backbone_inputs)
+    def forward(self, backbone_input):
+        hidden_features = self.model(**backbone_input)[0]  # shape (batch_size, seq_len, 2048)
+        return BatchFeature(
+            data={
+            "backbone_features": hidden_features,
+            "backbone_attention_mask": backbone_input["attention_mask"] == 1,
+            "image_mask": backbone_input["input_ids"] == self.model.config.image_token_id  # 151655,
+        })
+

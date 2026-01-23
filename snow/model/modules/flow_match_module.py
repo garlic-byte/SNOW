@@ -43,12 +43,12 @@ class SnowActionHead(nn.Module):
         self.action_horizon = config.action_horizon
         self.num_inference_timesteps = config.num_inference_timesteps
 
-        self.state_encoder = CategorySpecificMLP(
-            num_categories=config.max_num_embodiments,
-            input_dim=config.max_state_dim,
-            hidden_dim=self.hidden_size,
-            output_dim=self.input_embedding_dim,
-        )
+        # self.state_encoder = CategorySpecificMLP(
+        #     num_categories=config.max_num_embodiments,
+        #     input_dim=config.max_state_dim,
+        #     hidden_dim=self.hidden_size,
+        #     output_dim=self.input_embedding_dim,
+        # )
         self.action_encoder = MultiEmbodimentActionEncoder(
             action_dim=self.action_dim,
             hidden_size=self.input_embedding_dim,
@@ -144,7 +144,7 @@ class SnowActionHead(nn.Module):
         backbone_output["backbone_features"] = backbone_features
         return backbone_output
 
-    def forward(self, backbone_output: BatchFeature, action_input: BatchFeature) -> BatchFeature:
+    def forward(self, backbone_output: BatchFeature, action_input: BatchFeature) -> dict:
         """
         Forward pass through the action head.
 
@@ -226,12 +226,7 @@ class SnowActionHead(nn.Module):
         action_loss = F.mse_loss(pred_actions, velocity, reduction="none") * action_mask
         loss = action_loss.sum() / (action_mask.sum() + 1e-6)
 
-        return BatchFeature({
-            "loss": loss,
-            "action_loss": action_loss,
-            "action_mask": action_mask,
-            "backbone_features": vl_embeds,
-        })
+        return {'loss': loss}
 
     def _encode_features(
         self, backbone_output: BatchFeature, action_input: BatchFeature

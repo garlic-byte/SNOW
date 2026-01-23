@@ -1,6 +1,8 @@
 
-from snow.config import SnowConfig, DataConfig, TrainConfig
+from snow.config import DataConfig
 from snow.data import ShardCacheDataset
+from snow.data.collator.collator import DataCollator
+from snow.data.transformer.transformer import Transformer
 
 
 class DataPipeline:
@@ -12,7 +14,7 @@ class DataPipeline:
     """
     def __init__(self, data_config: DataConfig):
         # Load dataset
-        dataset = ShardCacheDataset(
+        self.dataset = ShardCacheDataset(
             dataset_paths=data_config.dataset_path,
             modality_id=data_config.modality_id,
             video_backend=data_config.video_backend,
@@ -21,4 +23,21 @@ class DataPipeline:
             seed=data_config.seed,
         )
         # Design processor
+        self.transformer = Transformer(
+            processor_path=data_config.processor_path,
+            inter_size=data_config.inter_size,
+            crop_fraction=data_config.crop_fraction,
+            target_size=data_config.target_size,
+            color_jitter=data_config.color_jitter,
+            modality_id=data_config.modality_id,
+            statistics=self.dataset.get_statistics(),
+
+        )
+        self.transformer.train()
+        self.dataset.set_transform(self.transformer)
+
+        # Use collator
+        self.collator = DataCollator(
+            processor_path=data_config.processor_path,
+        )
 
