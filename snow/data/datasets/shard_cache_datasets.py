@@ -11,7 +11,7 @@ from snow.data.datasets import LerobotDataset
 class ShardCacheDataset(IterableDataset):
     def __init__(
         self,
-        dataset_paths: tuple,
+        dataset_paths: str,
         modality_id: str = None,
         video_backend: str = "ffmpeg",
         video_backend_kwargs: dict = None,
@@ -19,7 +19,7 @@ class ShardCacheDataset(IterableDataset):
         seed: int = 64,
     ):
         super().__init__()
-        self.dataset_paths = dataset_paths
+        self.dataset_paths = dataset_paths.split(',')
         self.shard_size = shard_size
         self.seed = seed
 

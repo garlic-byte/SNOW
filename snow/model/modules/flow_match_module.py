@@ -95,7 +95,7 @@ class SnowActionHead(nn.Module):
         for p in self.parameters():
             p.requires_grad = True
         if not tune_projector:
-            self.state_encoder.requires_grad_(False)
+            # self.state_encoder.requires_grad_(False)
             self.action_encoder.requires_grad_(False)
             self.action_decoder.requires_grad_(False)
             if self.config.add_pos_embed:
@@ -106,16 +106,22 @@ class SnowActionHead(nn.Module):
             self.model.requires_grad_(False)
         if not tune_vlln:
             self.vlln.requires_grad_(False)
-        print(f"Tune action head projector: {self.tune_projector}")
-        print(f"Tune action head diffusion model: {self.tune_diffusion_model}")
-        print(f"Tune action head vlln: {self.tune_vlln}")
+        print(f"[Model loaded] Tune action head projector: {self.tune_projector}")
+        print(f"[Model loaded] Tune action head diffusion model: {self.tune_diffusion_model}")
+        print(f"[Model loaded] Tune action head vlln: {self.tune_vlln}")
         # Check if any parameters are still trainable. If not, print a warning.
         if not tune_projector and not tune_diffusion_model and not tune_vlln:
             for name, p in self.named_parameters():
                 if p.requires_grad:
-                    print(f"Action head trainable parameter: {name}")
+                    print(f"[Model loaded] Action head trainable parameter: {name}")
         if not any(p.requires_grad for p in self.parameters()):
-            print("Warning: No action head trainable parameters found.")
+            print("[Model loaded] Warning: No action head trainable parameters found.")
+
+        total_params = sum(p.numel() for p in self.model.parameters())
+        total_trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        print(f"[Model loaded] Action model total params: {total_params:,}")
+        print(f"[Model loaded] Action model total trainable params: {total_trainable_params:,}, training radio: {total_trainable_params / total_params * 100:.2f}%")
+
 
     def set_frozen_modules_to_eval_mode(self):
         """
@@ -125,7 +131,7 @@ class SnowActionHead(nn.Module):
         """
         if self.training:
             if not self.tune_projector:
-                self.state_encoder.eval()
+                # self.state_encoder.eval()
                 self.action_encoder.eval()
                 self.action_decoder.eval()
                 if self.config.add_pos_embed:
@@ -254,9 +260,9 @@ class SnowActionHead(nn.Module):
         embodiment_id = action_input.embodiment_id
 
         # Embed state.
-        state_features = self.state_encoder(action_input.state, embodiment_id)
+        # state_features = self.state_encoder(action_input.state, embodiment_id)
 
-        return BatchFeature(data={"backbone_features": vl_embeds, "state_features": state_features})
+        # return BatchFeature(data={"backbone_features": vl_embeds, "state_features": state_features})
 
     @torch.no_grad()
     def get_action_with_features(

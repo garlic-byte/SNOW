@@ -408,10 +408,10 @@ class SelfAttentionTransformer(ModelMixin, ConfigMixin):
                 for _ in range(self.config.num_layers)
             ]
         )
-        print(
-            "Total number of SelfAttentionTransformer parameters: ",
-            sum(p.numel() for p in self.parameters() if p.requires_grad),
-        )
+        # print(
+        #     "Total number of SelfAttentionTransformer parameters: ",
+        #     sum(p.numel() for p in self.parameters() if p.requires_grad),
+        # )
 
     def forward(
         self,

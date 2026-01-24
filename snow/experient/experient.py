@@ -10,7 +10,7 @@ def run_train(model_config: SnowConfig, data_config: DataConfig, train_config: T
     data_pipeline = DataPipeline(data_config)
 
     # Step 2. load pre-trained model
-    model = SnowModel(model_config)
+    model = SnowModel.from_pretrained(model_config.model_path)
 
     # Step 3. Configuration for training
     training_args = TrainingArguments(

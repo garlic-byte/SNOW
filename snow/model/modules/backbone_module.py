@@ -51,14 +51,17 @@ class SnowBackbone(PreTrainedModel):
                 for param in layer.parameters():
                     param.requires_grad = True
 
+        print(f"[Model loaded] Tune backbone vision: {tune_visual}")
+        print(f"[Model loaded] Tune backbone language: {tune_llm}")
         total_params = sum(p.numel() for p in self.model.parameters())
         total_trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"[Model loaded] Total params: {total_params:,}")
-        print(f"[Model loaded] Total trainable params: {total_trainable_params:,}, training radio: {total_trainable_params / total_params * 100:.2f}%")
+        print(f"[Model loaded] Backbone model total params: {total_params:,}")
+        print(f"[Model loaded] Backbone model total trainable params: {total_trainable_params:,}, training radio: {total_trainable_params / total_params * 100:.2f}%")
 
 
     def forward(self, backbone_input):
         hidden_features = self.model(**backbone_input)[0]  # shape (batch_size, seq_len, 2048)
+        print("hidden_features", hidden_features[0, 0, 1])
         return BatchFeature(
             data={
             "backbone_features": hidden_features,

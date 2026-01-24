@@ -4,7 +4,7 @@ from dataclasses import dataclass
 class DataConfig:
     """Data configuration contains data and process."""
 
-    dataset_path: tuple = None
+    dataset_path: str = None
     """Paths to the datasets."""
 
     modality_id: str = "YmBot"
@@ -22,7 +22,7 @@ class DataConfig:
     video_backend_kwargs: dict = None
     """Keyword arguments passed to ffmpeg."""
 
-    shard_size: int = 2**10
+    shard_size: int = 2**4
     """Shard size to use."""
 
     seed: int = 64
