@@ -12,7 +12,7 @@ from torch import nn
 from torch.distributions import Beta
 import torch.nn.functional as F
 from transformers.feature_extraction_utils import BatchFeature
-
+from snow.utils import print_logging
 
 
 class SnowActionHead(nn.Module):
@@ -33,12 +33,12 @@ class SnowActionHead(nn.Module):
                 cross_attention_dim=config.backbone_embedding_dim,
                 attend_text_every_n_blocks=config.attend_text_every_n_blocks,
             )
-            print("Using AlternateVLDiT for diffusion model")
+            print_logging("Using AlternateVLDiT for diffusion model")
         else:
             self.model = DiT(
                 **config.diffusion_model_cfg, cross_attention_dim=config.backbone_embedding_dim
             )
-            print("Using DiT for diffusion model")
+            print_logging("Using DiT for diffusion model")
         self.action_dim = config.max_action_dim
         self.action_horizon = config.action_horizon
         self.num_inference_timesteps = config.num_inference_timesteps
@@ -106,21 +106,21 @@ class SnowActionHead(nn.Module):
             self.model.requires_grad_(False)
         if not tune_vlln:
             self.vlln.requires_grad_(False)
-        print(f"[Model loaded] Tune action head projector: {self.tune_projector}")
-        print(f"[Model loaded] Tune action head diffusion model: {self.tune_diffusion_model}")
-        print(f"[Model loaded] Tune action head vlln: {self.tune_vlln}")
+        print_logging(f"[Model loaded] Tune action head projector: {self.tune_projector}")
+        print_logging(f"[Model loaded] Tune action head diffusion model: {self.tune_diffusion_model}")
+        print_logging(f"[Model loaded] Tune action head vlln: {self.tune_vlln}")
         # Check if any parameters are still trainable. If not, print a warning.
         if not tune_projector and not tune_diffusion_model and not tune_vlln:
             for name, p in self.named_parameters():
                 if p.requires_grad:
-                    print(f"[Model loaded] Action head trainable parameter: {name}")
+                    print_logging(f"[Model loaded] Action head trainable parameter: {name}")
         if not any(p.requires_grad for p in self.parameters()):
-            print("[Model loaded] Warning: No action head trainable parameters found.")
+            print_logging("[Model loaded] Warning: No action head trainable parameters found.")
 
         total_params = sum(p.numel() for p in self.model.parameters())
         total_trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"[Model loaded] Action model total params: {total_params:,}")
-        print(f"[Model loaded] Action model total trainable params: {total_trainable_params:,}, training radio: {total_trainable_params / total_params * 100:.2f}%")
+        print_logging(f"[Model loaded] Action model total params: {total_params:,}")
+        print_logging(f"[Model loaded] Action model total trainable params: {total_trainable_params:,}, training radio: {total_trainable_params / total_params * 100:.2f}%")
 
 
     def set_frozen_modules_to_eval_mode(self):

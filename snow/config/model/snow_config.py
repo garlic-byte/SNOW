@@ -26,15 +26,6 @@ class SnowConfig(PretrainedConfig):
     tune_llm: bool = False
     tune_visual: bool = False
     select_layer: int = 16
-    # reproject_vision: bool = False
-    # use_flash_attention: bool = True
-    # load_bf16: bool = True  # Enable BF16 loading
-    # collator_overwrite_image_inputs: bool = False  # Deprecated; use eagle_collator.
-    # eagle_collator: bool = (
-    #     False  # this allows model to change image size in collator, needed for eagle any-res
-    # )
-    # backbone_trainable_params_fp32: bool = True
-
 
     # Action head configuration parameters
     # max_state_dim: int = 30  # Default from state_shape

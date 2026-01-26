@@ -7,6 +7,8 @@ import torch.distributed as dist
 from concurrent.futures import Future, ThreadPoolExecutor
 
 from snow.data.datasets import LerobotDataset
+from snow.utils import save_dataclass
+
 
 class ShardCacheDataset(IterableDataset):
     def __init__(
@@ -18,11 +20,13 @@ class ShardCacheDataset(IterableDataset):
         shard_size: int = 2**10,
         seed: int = 64,
         vessel_length: int = 10,
+        config_output_dir: str = None,
     ):
         super().__init__()
         self.dataset_paths = dataset_paths.split(',')
         self.shard_size = shard_size
         self.seed = seed
+        self.config_output_dir = config_output_dir
 
         # Initialize all datasets
         self.datasets = [LerobotDataset(
@@ -78,6 +82,7 @@ class ShardCacheDataset(IterableDataset):
             final_stats[modality_key] = {}
             final_stats[modality_key]['max'] = np.max(np.vstack(total_stats[modality_key]['max']), axis=0)
             final_stats[modality_key]['min'] = np.min(np.vstack(total_stats[modality_key]['min']), axis=0)
+        save_dataclass(self.config_output_dir, stats=final_stats)
         return final_stats
 
 

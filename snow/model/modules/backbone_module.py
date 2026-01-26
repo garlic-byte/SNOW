@@ -6,6 +6,7 @@ from snow.config import SnowConfig
 from transformers import Qwen3VLForConditionalGeneration, AutoProcessor, Qwen3VLModel, PreTrainedModel, AutoConfig, \
     AutoModel, BatchFeature
 
+from snow.utils import print_logging
 
 class SnowBackbone(PreTrainedModel):
     def __init__(self, config: SnowConfig):
@@ -51,12 +52,12 @@ class SnowBackbone(PreTrainedModel):
                 for param in layer.parameters():
                     param.requires_grad = True
 
-        print(f"[Model loaded] Tune backbone vision: {tune_visual}")
-        print(f"[Model loaded] Tune backbone language: {tune_llm}")
+        print_logging(f"[Model loaded] Tune backbone vision: {tune_visual}")
+        print_logging(f"[Model loaded] Tune backbone language: {tune_llm}")
         total_params = sum(p.numel() for p in self.model.parameters())
         total_trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"[Model loaded] Backbone model total params: {total_params:,}")
-        print(f"[Model loaded] Backbone model total trainable params: {total_trainable_params:,}, training radio: {total_trainable_params / total_params * 100:.2f}%")
+        print_logging(f"[Model loaded] Backbone model total params: {total_params:,}")
+        print_logging(f"[Model loaded] Backbone model total trainable params: {total_trainable_params:,}, training radio: {total_trainable_params / total_params * 100:.2f}%")
 
     @staticmethod
     def prepare_input(batch) -> BatchFeature:

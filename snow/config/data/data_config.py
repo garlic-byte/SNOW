@@ -25,6 +25,9 @@ class DataConfig:
     shard_size: int = 2**10
     """Shard size to use."""
 
+    vessel_length: int = 10
+    """Length of each vessel."""
+
     seed: int = 64
     """Seed for random number generator."""
 
@@ -40,3 +43,5 @@ class DataConfig:
     color_jitter: bool = True
     """Whether to apply color jitter."""
 
+    config_output_dir: str = None
+    """Path to the output directory for configuration."""

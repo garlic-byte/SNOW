@@ -21,6 +21,8 @@ class DataPipeline:
             video_backend_kwargs=data_config.video_backend_kwargs,
             shard_size=data_config.shard_size,
             seed=data_config.seed,
+            vessel_length=data_config.vessel_length,
+            config_output_dir=data_config.config_output_dir,
         )
         # Design processor
         self.transformer = Transformer(
