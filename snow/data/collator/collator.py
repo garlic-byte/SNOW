@@ -11,18 +11,25 @@ class DataCollator:
         """Apply the collation function to the batch."""
 
         batch = {}
+        batch_size = len(batch_inputs)
         # Apply version-language processor
-        batch["backbone_input"] = self.processor(
+        backbone_input = self.processor(
             text=[inputs["text"] for inputs in batch_inputs],
             images=[inputs["image"] for inputs in batch_inputs],
             return_tensors="pt",
             padding=True
         )
 
+        # Reshape pixel_values for broadcasting and concatenating
+        pixel_values_shape = backbone_input["pixel_values"].shape
+        backbone_input["pixel_values"] = backbone_input["pixel_values"].view(batch_size, -1, pixel_values_shape[-1])
+        batch.update(backbone_input)
+
         # Merge action and embodiment_id to batch
-        batch["action_input"] = {
+        action_input = {
             "action": torch.stack([inputs["action"] for inputs in batch_inputs], dim=0),
             "embodiment_id": torch.cat([inputs["embodiment_id"] for inputs in batch_inputs], dim=0),
             "action_mask": torch.stack([inputs["action_mask"] for inputs in batch_inputs], dim=0),
         }
-        return BatchFeature(data={"inputs": batch})
+        batch.update(action_input)
+        return BatchFeature(data=batch)

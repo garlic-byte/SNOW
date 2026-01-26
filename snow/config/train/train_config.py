@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class TrainConfig:
-    per_device_train_batch_size: int = 1
+    per_device_train_batch_size: int = 2
     """Batch size for single gpu training."""
 
     num_gpus: int = 1

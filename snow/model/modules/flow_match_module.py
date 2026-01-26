@@ -377,4 +377,5 @@ class SnowActionHead(nn.Module):
 
     def prepare_input(self, batch: dict) -> BatchFeature:
         """Prepare input batch for the action head."""
-        return BatchFeature(data=batch)
+        use_keys = ['action', 'embodiment_id', 'action_mask']
+        return BatchFeature(data={key: batch[key] for key in use_keys})

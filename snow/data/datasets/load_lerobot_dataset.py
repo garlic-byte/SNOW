@@ -1,13 +1,17 @@
 
 import json
+import math
 import os
 import time
 from pathlib import Path
+import random
 from typing import Dict
+
+from numpy.random import Generator
 
 import numpy as np
 import pandas as pd
-
+from tests.test_generic_params import Schedule
 
 from snow.config import ROBOT_CONFIG
 from snow.utils import process_parquet_files_optimized, get_frames_by_indices
@@ -43,6 +47,7 @@ class LerobotDataset:
         modality_id: str,
         video_backend: str = "ffmpeg",
         video_backend_kwargs: dict = None,
+        vessel_length: int = 10,
     ):
         self.dataset_index = dataset_index
         self.dataset_path = Path(dataset_path)
@@ -50,6 +55,10 @@ class LerobotDataset:
         self.video_backend = video_backend
         self.video_backend_kwargs = video_backend_kwargs
         self.load_meta_info()
+
+        # Split step indices into (split_episode_nums) shard_vessels from each episode
+        self.shard_vessel = None
+        self.vessel_length = vessel_length
 
 
     def load_meta_info(self):
@@ -141,21 +150,29 @@ class LerobotDataset:
             action_language_df[f"action.{modality_key}"] = origin_df["action"].map(lambda x: x[modality_position["start"]:modality_position["end"]])
         return action_language_df
 
-    def _load_images_data(self, episode_index: int, video_indices: np.ndarray) -> pd.DataFrame:
+    def _load_images_data(
+        self,
+        episode_index: int,
+        video_indices: np.ndarray | list[int]
+    ) -> dict[str, np.ndarray]:
         """Load images data in the dataset."""
-        video_data = pd.DataFrame()
+        video_data = {}
         episode_chunk = episode_index // self.chunks_size
         for video_key in self.modality_meta["video"]:
             original_key = self.modality_meta["video"][video_key]["original_key"]
             assert original_key in self.features, f"Video {video_key} is not in lerobot dataset."
-            video_path = self.dataset_path / VIDEO_PATH.format(episode_chunk=episode_chunk, video_key=original_key, episode_index=episode_index)
+            video_path = self.dataset_path / VIDEO_PATH.format(
+                episode_chunk=episode_chunk, video_key=original_key, episode_index=episode_index
+            )
+            # t1 = time.time()
             frames_arr = get_frames_by_indices(
                 video_path,
                 video_indices,
                 video_backend=self.video_backend,
                 video_backend_kwargs=self.video_backend_kwargs,
             )
-            video_data[f"observation.images.{video_key}"] = list(frames_arr)
+            # print(f"extract {len(frames_arr)} frames time: {time.time() - t1}")
+            video_data[f"{video_key}"] = frames_arr.squeeze()
         return video_data
 
 
@@ -170,17 +187,9 @@ class LerobotDataset:
         assert episode_index < len(self.episodes_meta), f"get lerobot episode index {episode_index} > length of dataset."
         episode_meta = self.episodes_meta[episode_index]
         episode_index = episode_meta["episode_index"]
-        length = episode_meta["length"]
 
-        # Load action from parquet
-        episode_data = self._load_parquet_data(episode_index)
-
-        # Load images from videos
-        effective_length = min(length, len(episode_data))
-        video_indices = np.arange(effective_length)
-        video_data = self._load_images_data(episode_index, video_indices)
-        episode_data = pd.concat([episode_data, video_data], axis=1)
-        return episode_data
+        # Load action, state, language from parquet
+        return self._load_parquet_data(episode_index)
 
     def get_episode_effect_length(self, episode_index: int) -> int:
         """Get effective episode length"""
@@ -190,17 +199,27 @@ class LerobotDataset:
         """Count the total number of frames in the dataset."""
         return sum([self.get_episode_effect_length(episode_index) for episode_index in range(self.total_episodes)])
 
-    def initialize_schedule(self):
-        """Initialize schedule contains (dataset_index, episode_index, step_index)."""
-        schedule = []
-        for episode_index in range(self.total_episodes):
-            for step_index in range(self.get_episode_effect_length(episode_index)):
-                schedule.append(np.array([self.dataset_index, episode_index, step_index], dtype=np.int32))
-        return np.array(schedule, dtype=np.int32)
 
-    def get_step_data(self, episode_index, step_index) -> Dict:
+    def initialize_shard_vessel(self, rng: Generator):
+        """Initialize shard contains (dataset_index, episode_index, step_indices)."""
+        shard_vessel = []
+        for episode_index in range(self.total_episodes):
+            # Generate effect indices
+            step_effect_length = self.get_episode_effect_length(episode_index)
+            step_indices = np.arange(0, step_effect_length)
+            rng.shuffle(step_indices)
+
+            # Split indices into predetermined length
+            step_nums = math.ceil(step_effect_length / self.vessel_length)
+            for step_index in range(step_nums):
+                shard_vessel.append((self.dataset_index, episode_index, step_indices[step_index::step_nums]))
+
+        return shard_vessel
+
+    def get_step_data(self, episode_data: pd.DataFrame, episode_index: int, step_index: int):
         """
-        Get single step data of an episode from the dataset.
+        Get single step data from the dataset.
+        :param episode_data: data for one parquet episode contains language, action, state
         :param episode_index: index of episode
         :param step_index: index of step
         :return: step_data
@@ -221,13 +240,14 @@ class LerobotDataset:
                     }
             }
         """
-        # Varify index of episode should be loss than effective length
-        assert step_index < self.get_episode_effect_length(episode_index), f"step_index {step_index} should be less that length of episode."
-
         # Extract data of single step
         step_data = {}
-        episode_data = self._get_episode_data(episode_index)
         for modality_type in self.robot_modality:
+            # extracting images only when we need them
+            if modality_type == "observation.images":
+                step_data[modality_type] = self._load_images_data(episode_index, [step_index])
+                continue
+
             step_data[modality_type] = {}
             for modality_key in self.robot_modality[modality_type].modality_keys:
                 # indices of needing extract modality data, special for action which has horizon
@@ -244,6 +264,20 @@ class LerobotDataset:
 
         return step_data
 
+    def get_steps_data(self, episode_index: int, step_indices: np.array) -> list:
+        """
+        Get multiple steps data of an episode from the dataset.
+        For language, action and state, we extract all steps data into pd,
+        but for images, we only extract needed step frame into numpy arrays.
+        This trick will speed up data loading.
+        """
+        episode_parquet_data = self._get_episode_data(episode_index)
+
+        return [
+            self.get_step_data(episode_parquet_data, episode_index, step_index)
+            for step_index in step_indices
+        ]
+
 
 if __name__ == "__main__":
 
@@ -255,11 +289,11 @@ if __name__ == "__main__":
     )
 
     count_time = []
-    for i in range(10):
+    for i in range(1000):
         start_time = time.time()
-        data = dataset.get_step_data(0, 20)
+        data = dataset.get_steps_data(0, np.arange(0, 10))
         end_time = time.time()
-        # print(f"step {i} took {end_time - start_time:2f} seconds.")
+        print(f"step {i} took {end_time - start_time:2f} seconds.")
         count_time.append(end_time - start_time)
     print(f"average time per episode: {sum(count_time) / len(count_time):2f} seconds.")
 

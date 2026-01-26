@@ -58,10 +58,17 @@ class SnowBackbone(PreTrainedModel):
         print(f"[Model loaded] Backbone model total params: {total_params:,}")
         print(f"[Model loaded] Backbone model total trainable params: {total_trainable_params:,}, training radio: {total_trainable_params / total_params * 100:.2f}%")
 
+    @staticmethod
+    def prepare_input(batch) -> BatchFeature:
+        """Prepare inputs for backbone model."""
+        use_keys = ['input_ids', 'attention_mask', 'image_grid_thw']
+        backbone_input = {key: batch[key] for key in use_keys}
+        # Reshape pixel_values for broadcasting and concatenating
+        backbone_input["pixel_values"] = batch["pixel_values"].view(-1, batch["pixel_values"].shape[-1])
+        return BatchFeature(data=backbone_input)
 
     def forward(self, backbone_input):
         hidden_features = self.model(**backbone_input)[0]  # shape (batch_size, seq_len, 2048)
-        print("hidden_features", hidden_features[0, 0, 1])
         return BatchFeature(
             data={
             "backbone_features": hidden_features,

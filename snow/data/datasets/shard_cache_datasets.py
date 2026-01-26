@@ -13,10 +13,11 @@ class ShardCacheDataset(IterableDataset):
         self,
         dataset_paths: str,
         modality_id: str = None,
-        video_backend: str = "ffmpeg",
+        video_backend: str = "torchcodec",
         video_backend_kwargs: dict = None,
         shard_size: int = 2**10,
         seed: int = 64,
+        vessel_length: int = 10,
     ):
         super().__init__()
         self.dataset_paths = dataset_paths.split(',')
@@ -30,10 +31,9 @@ class ShardCacheDataset(IterableDataset):
                 modality_id=modality_id,
                 video_backend=video_backend,
                 video_backend_kwargs=video_backend_kwargs,
+                vessel_length=vessel_length,
             )for dataset_index, dataset_path in enumerate(self.dataset_paths)]
         self.epoch = -1
-        # Initialize schedules (dataset_index, episode_index, step_index)
-        self.total_schedules = np.vstack([dataset.initialize_schedule() for dataset in self.datasets], dtype=np.int32)
 
         # Initialize world size and current rank
         if dist.is_initialized():
@@ -90,7 +90,12 @@ class ShardCacheDataset(IterableDataset):
         self.epoch += 1
         self.cur_schedule_index = 0
         rng = np.random.default_rng(self.seed + self.epoch)
-        random_schedules = self.total_schedules.copy()
+
+        # Initialize schedules (dataset_index, episode_index, step_indices)
+        random_schedules = []
+        for datas in self.datasets:
+            random_schedules += datas.initialize_shard_vessel(rng)
+
         rng.shuffle(random_schedules, axis=0)
 
         # Initialize current identity worker and number of workers
@@ -127,12 +132,13 @@ class ShardCacheDataset(IterableDataset):
             # Varify schedule is sufficient
             if self.cur_schedule_index >= len(self.filter_schedules):
                 self._reset_schedules()
-            dataset_index, episode_index, step_index = self.filter_schedules[self.cur_schedule_index]
-            step_data = self.datasets[dataset_index].get_step_data(episode_index, step_index)
-            shard_vessels.append(self.transformer(step_data))
+            dataset_index, episode_index, step_indices = self.filter_schedules[self.cur_schedule_index]
+            steps_data = self.datasets[dataset_index].get_steps_data(episode_index, step_indices)
+            # Transformer language, images and action
+            shard_vessels += [self.transformer(step_data) for step_data in steps_data]
             self.cur_schedule_index += 1
-            count_vessel += 1
-        self.shard_vessels = shard_vessels
+            count_vessel += len(step_indices)
+        return shard_vessels
 
 
     def start_load_data(self):
@@ -143,13 +149,15 @@ class ShardCacheDataset(IterableDataset):
     def wait_load_data(self):
         """Wait until shard vessels are loaded."""
         assert self._cache_job is not None, "Program system is not initialized."
-        self._cache_job.result()
+        self.shard_vessels = self._cache_job.result()
         self._cache_job = None
 
+    def delete_shard_vessels(self):
+        """Delete shard vessels."""
+        del self.shard_vessels
 
     def __iter__(self):
         """Get iterator for ShardCacheDataset."""
-
         assert self.transformer is not None, "ShardCache requires transformer to be initialized."
         self._executor = ThreadPoolExecutor(max_workers=1)
         self.start_load_data()
@@ -161,26 +169,19 @@ class ShardCacheDataset(IterableDataset):
 
             # Immediately load next data
             self.start_load_data()
-
             for step_data in self.shard_vessels:
                 yield step_data
+            self.delete_shard_vessels()
+
 
 if __name__ == "__main__":
     dataset = ShardCacheDataset(
-        dataset_paths = (
-            "/home/wsj/Desktop/code/VLA/SNOW/datasets/test",
-            "/home/wsj/Desktop/code/VLA/SNOW/datasets/amass",
-        ),
+        dataset_paths = "/home/wsj/Desktop/code/VLA/SNOW/datasets/test,"
+                        "/home/wsj/Desktop/code/VLA/SNOW/datasets/amass",
         modality_id="YmBot",
-        shard_size=10,
+        shard_size=2**10,
+        vessel_length=2**6,
     )
-    dataloader = DataLoader(
-        dataset,
-        batch_size=2,
-        num_workers=4,
-        drop_last=True
-    )
-
-    print("===== Multiple workers test =====")
-    for batch_idx, batch in enumerate(dataloader):
-        print(f"\nBatch {batch_idx} - info: {batch}")
+    dataset.set_transform(lambda x: x)
+    for data in dataset:
+        x = 1

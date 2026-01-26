@@ -73,7 +73,6 @@ class ImageProcessor:
         train_transforms = inference_transforms = []
 
         # Add fraction crop transformation
-        # TODO revise size of target
         assert 0 < self.crop_fraction <= 1, f"crop_fraction must be between 0 and 1"
         train_transforms += [
             A.Resize(height=self.inter_size[0], width=self.inter_size[1], p=1.0),

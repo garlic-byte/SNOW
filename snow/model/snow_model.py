@@ -27,16 +27,16 @@ class SnowModel(PreTrainedModel):
                 return x.to(dtype=self.dtype)
             else:
                 return x
-        batch_backbone_input = BatchFeature(data=inputs["backbone_input"])
-        batch_action_input = BatchFeature(data=inputs["action_input"])
+        batch_backbone_input = self.backbone.prepare_input(inputs)
+        batch_action_input = self.action_head.prepare_input(inputs)
 
         batch_backbone_input = tree.map_structure(to_dtype, batch_backbone_input)
         batch_action_input = tree.map_structure(to_dtype, batch_action_input)
         return batch_backbone_input, batch_action_input
 
 
-    def forward(self, inputs) -> BatchFeature:
-        backbone_input, action_input = self.prepare_input(inputs)
+    def forward(self, **kwargs) -> BatchFeature:
+        backbone_input, action_input = self.prepare_input(kwargs)
 
         backbone_output = self.backbone(backbone_input)
         batch_output = self.action_head(backbone_output, action_input)
