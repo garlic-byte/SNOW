@@ -26,5 +26,19 @@ ROBOT_CONFIG = {
                 modality_keys=["root_pos", "root_rot", "dof_pos"],
                 delta_indices=list(range(8)),
             ),
+    },
+    "libero_panda": {
+        "observation.images": ModalityConfig(
+            delta_indices=[0],
+            modality_keys=["image", "wrist_image"],
+        ),
+        "action": ModalityConfig(
+            delta_indices=list(range(8)),
+            modality_keys=["arm", "gripper"],
+        ),
+        "language": ModalityConfig(
+            delta_indices=[0],
+            modality_keys=["task"],
+        )
     }
 }

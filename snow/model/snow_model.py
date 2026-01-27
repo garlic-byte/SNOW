@@ -1,6 +1,7 @@
 from transformers import PreTrainedModel, BatchFeature
 import torch
 import tree
+import torch.cuda.nvtx as nvtx
 
 from snow.config import SnowConfig
 from snow.model.modules import SnowActionHead
@@ -20,6 +21,11 @@ class SnowModel(PreTrainedModel):
     def dtype(self):
         return next(iter(self.parameters())).dtype
 
+    def set_eval(self):
+        for p in self.parameters():
+            p.requires_grad = False
+        print("Start mode of inferencing...")
+
     def prepare_input(self, inputs):
         """Change dtype and convert to BatchFeature."""
         def to_dtype(x):
@@ -36,9 +42,22 @@ class SnowModel(PreTrainedModel):
 
 
     def forward(self, **kwargs) -> BatchFeature:
+        """Forward pass of the Snow model."""
         backbone_input, action_input = self.prepare_input(kwargs)
 
         backbone_output = self.backbone(backbone_input)
         batch_output = self.action_head(backbone_output, action_input)
-
         return batch_output
+
+    def get_action(self, inputs: BatchFeature) -> BatchFeature:
+        """
+        Generate actions using the complete model.
+        """
+        # Prepare inputs for backbone and action head
+        backbone_inputs, action_inputs = self.prepare_input(inputs)
+
+        # Forward through backbone
+        backbone_outputs = self.backbone(backbone_inputs)
+        action_outputs = self.action_head.get_action(backbone_outputs, action_inputs)
+
+        return action_outputs

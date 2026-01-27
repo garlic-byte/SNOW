@@ -30,7 +30,7 @@ class SnowConfig(PretrainedConfig):
     # Action head configuration parameters
     # max_state_dim: int = 30  # Default from state_shape
     max_action_dim: int = 30  # Default from action_shape
-    action_horizon: int = 16
+    action_horizon: int = 8
     hidden_size: int = 1024
     input_embedding_dim: int = 1536
 

@@ -263,12 +263,13 @@ class SnowActionHead(nn.Module):
         # state_features = self.state_encoder(action_input.state, embodiment_id)
 
         # return BatchFeature(data={"backbone_features": vl_embeds, "state_features": state_features})
+        return BatchFeature(data={"backbone_features": vl_embeds})
 
     @torch.no_grad()
     def get_action_with_features(
         self,
         backbone_features: torch.Tensor,
-        state_features: torch.Tensor,
+        # state_features: torch.Tensor,
         embodiment_id: torch.Tensor,
         backbone_output: BatchFeature,
     ) -> BatchFeature:
@@ -277,7 +278,7 @@ class SnowActionHead(nn.Module):
 
         Args:
             backbone_features: [B, seq_len, backbone_embedding_dim]
-            state_features: [B, state_horizon, input_embedding_dim]
+            # state_features: [B, state_horizon, input_embedding_dim]
             embodiment_id: [B] (embodiment IDs)
             backbone_output: Output from the backbone model
         """
@@ -311,7 +312,8 @@ class SnowActionHead(nn.Module):
                 action_features = action_features + pos_embs
 
             # Join vision, language, state and action embedding along sequence dimension.
-            sa_embs = torch.cat((state_features, action_features), dim=1)
+            # sa_embs = torch.cat((state_features, action_features), dim=1)
+            sa_embs = action_features
 
             # Run model forward.
             if self.config.use_alternate_vl_dit:
@@ -338,7 +340,7 @@ class SnowActionHead(nn.Module):
             data={
                 "action_pred": actions,
                 "backbone_features": vl_embeds,
-                "state_features": state_features,
+                # "state_features": state_features,
             }
         )
 
@@ -352,7 +354,7 @@ class SnowActionHead(nn.Module):
                 - backbone_features: [B, seq_len, backbone_embedding_dim]
                 - backbone_attention_mask: [B, seq_len]
             action_input: Input containing:
-                - state: [B, state_dim]
+                # - state: [B, state_dim]
                 - embodiment_id: [B] (embodiment IDs)
 
         Returns:
@@ -362,7 +364,7 @@ class SnowActionHead(nn.Module):
         features = self._encode_features(backbone_output, action_input)
         return self.get_action_with_features(
             backbone_features=features.backbone_features,
-            state_features=features.state_features,
+            # state_features=features.state_features,
             embodiment_id=action_input.embodiment_id,
             backbone_output=backbone_output,
         )

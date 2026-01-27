@@ -45,7 +45,7 @@ class LerobotDataset:
         dataset_index: int,
         dataset_path: str,
         modality_id: str,
-        video_backend: str = "ffmpeg",
+        video_backend: str = "torchcodec",
         video_backend_kwargs: dict = None,
         vessel_length: int = 10,
     ):
@@ -193,7 +193,7 @@ class LerobotDataset:
 
     def get_episode_effect_length(self, episode_index: int) -> int:
         """Get effective episode length"""
-        return max(0, self.episodes_meta[episode_index]["length"] - len(self.action_dimension))
+        return max(0, self.episodes_meta[episode_index]["length"] - len(self.action_dimension) + 1)
 
     def count_total_frames(self) -> int:
         """Count the total number of frames in the dataset."""

@@ -20,9 +20,11 @@ class DataCollator:
             padding=True
         )
 
-        # Reshape pixel_values for broadcasting and concatenating
+        # Reshape pixel_values and image_grid_thw for broadcasting and concatenating
         pixel_values_shape = backbone_input["pixel_values"].shape
+        image_grid_thw_shape = backbone_input["image_grid_thw"].shape
         backbone_input["pixel_values"] = backbone_input["pixel_values"].view(batch_size, -1, pixel_values_shape[-1])
+        backbone_input["image_grid_thw"] = backbone_input["image_grid_thw"].view(batch_size, -1, image_grid_thw_shape[-1])
         batch.update(backbone_input)
 
         # Merge action and embodiment_id to batch

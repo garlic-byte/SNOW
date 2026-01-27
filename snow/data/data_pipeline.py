@@ -33,6 +33,7 @@ class DataPipeline:
             color_jitter=data_config.color_jitter,
             modality_id=data_config.modality_id,
             statistics=self.dataset.get_statistics(),
+            max_action_dim=data_config.max_action_dim,
 
         )
         self.transformer.train()
@@ -42,4 +43,7 @@ class DataPipeline:
         self.collator = DataCollator(
             processor_path=data_config.processor_path,
         )
+
+    def eval(self):
+        self.transformer.eval()
 

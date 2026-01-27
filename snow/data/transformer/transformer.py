@@ -1,5 +1,6 @@
 from typing import Any
 
+import numpy as np
 import torch
 
 from snow.config import ROBOT_CONFIG
@@ -15,10 +16,12 @@ class Transformer:
         color_jitter: bool = True,
         modality_id: str = None,
         statistics: dict = None,
+        max_action_dim=None,
     ):
         self.processor_path = processor_path
         self.version_language_processor = VisionLanguageProcessor(processor_path)
         self.action_modality_keys = ROBOT_CONFIG[modality_id]['action'].modality_keys
+        self.max_action_dim = max_action_dim
 
         self.image_processor = ImageProcessor(
             inter_size=inter_size,
@@ -40,6 +43,25 @@ class Transformer:
         """Set mode for training and evaluation."""
         self.image_processor.eval()
 
+    def decode_action(self, action_modality: dict, action: torch.tensor) -> dict[str, np.ndarray]:
+        """
+        Decode tensor into action with action_modality.
+        Args:
+            action (torch.tensor): [1, action_horizon, action_dimension]
+        Returns:
+            {
+                action_key: [action_horizon, action_key_dimension]
+            }
+        """
+        # Split into mapping joint_key -> joint_value
+        action_decoded = {}
+        for action_key, action_info in action_modality.items():
+            joint_start, joint_end = action_info['start'], action_info['end']
+            action_decoded[action_key] = action[0, :, joint_start:joint_end].detach().cpu().to(torch.float32).numpy()
+
+        return self.action_processor.decoder(action_decoded)
+
+
     def __call__(self, step_data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform raw data -> normalized data for Model inputs.
@@ -57,15 +79,23 @@ class Transformer:
                     for action_key in self.action_modality_keys
             ], dim=-1,
         )
+        # Padding action to max_action_dim
+        action_horizon, action_dimension = normalized_actions_torch.shape
+        normalized_actions_torch = torch.cat(
+            [
+                normalized_actions_torch,
+                torch.zeros(action_horizon, self.max_action_dim - action_dimension)
+            ],dim=-1,
+        )
+        action_mask = torch.ones_like(normalized_actions_torch)
+        action_mask[:, action_dimension:] = 0
         normalized_data["action"] = normalized_actions_torch
+        normalized_data["action_mask"] = action_mask
 
         # Step 3. normalize images and languages
-        normalized_version_language = self.version_language_processor(normalized_images, step_data["language"])
+        normalized_version_language = self.version_language_processor(normalized_images, step_data["language"]['task'])
         normalized_data.update(normalized_version_language)
 
         # Step 4. addition embodiment_id
         normalized_data["embodiment_id"] = torch.tensor([0], dtype=torch.long)
-
-        # Step 5. addition action_mask
-        normalized_data["action_mask"] = torch.ones_like(normalized_actions_torch)
         return normalized_data

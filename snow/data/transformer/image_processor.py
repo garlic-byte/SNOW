@@ -70,8 +70,8 @@ class ImageProcessor:
 
     def _create_spatial_transform(self):
         """Create spatial transformations (crop and resize)"""
-        train_transforms = inference_transforms = []
-
+        train_transforms = []
+        inference_transforms = []
         # Add fraction crop transformation
         assert 0 < self.crop_fraction <= 1, f"crop_fraction must be between 0 and 1"
         train_transforms += [

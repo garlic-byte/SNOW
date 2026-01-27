@@ -82,3 +82,17 @@ def save_dataclass(save_dir, **kwargs):
         class_instance = serialize_for_json(class_instance)
         with open(save_dir / (class_name + '.json'), "w", encoding="utf-8") as f:
             json.dump(class_instance, f, ensure_ascii=False, indent=4)
+
+def read_configs(model_save_dir, file_name: str):
+    """Read json files from disk"""
+    model_dir = Path(model_save_dir)
+    if not (model_dir / 'configs').exists():
+        model_dir = model_dir.parent
+
+    save_dir = model_dir / "configs"
+    assert save_dir.exists(), f"There is no config files in {model_dir} or {model_save_dir}"
+
+    content = None
+    with open(save_dir / (file_name + '.json'), "r", encoding="utf-8") as f:
+        content = json.load(f)
+    return content
