@@ -126,7 +126,6 @@ class ShardCacheDataset(IterableDataset):
         for index in range(len(random_schedules)):
             if index % (self.world_size * self.num_workers) == self.rank * self.num_workers + self.worker_id:
                 filter_schedules.append(random_schedules[index])
-        print(self.rank, self.worker_id, len(filter_schedules))
         self.filter_schedules = filter_schedules
 
 

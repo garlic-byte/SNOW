@@ -15,13 +15,13 @@ class TrainConfig:
     output_dir: str = None
     """Path to the output directory of the training."""
 
-    max_steps: int = 30000
+    max_steps: int = int(1e6)
     """Maximum number of training steps."""
 
     learning_rate: float = 1e-4
     """Learning rate for optimizer."""
 
-    dataloader_num_workers: int = 4
+    dataloader_num_workers: int = 1
     """Number of dataloader workers."""
 
     deepspeed_config: str = None

@@ -40,5 +40,22 @@ ROBOT_CONFIG = {
             delta_indices=[0],
             modality_keys=["task"],
         )
-    }
+    },
+    "YmBot_D": {
+        "observation.images":
+            ModalityConfig(
+                modality_keys=["top", "middle"],
+                delta_indices=[0],
+            ),
+        "language":
+            ModalityConfig(
+                modality_keys=["task"],
+                delta_indices=[0],
+            ),
+        "action":
+            ModalityConfig(
+                modality_keys=["left_arm", "right_arm", "left_hand", "right_hand"],
+                delta_indices=list(range(8)),
+            ),
+    },
 }
