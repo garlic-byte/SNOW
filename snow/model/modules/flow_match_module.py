@@ -1,5 +1,7 @@
 from typing import Tuple
 
+from functorch.dim import use_c
+
 from snow.config.model import SnowConfig
 from snow.model.modules import (
     CategorySpecificMLP,
@@ -377,7 +379,8 @@ class SnowActionHead(nn.Module):
     def dtype(self):
         return next(iter(self.parameters())).dtype
 
-    def prepare_input(self, batch: dict) -> BatchFeature:
+    def prepare_input(self, batch: dict, eval_model: bool = False) -> BatchFeature:
         """Prepare input batch for the action head."""
-        use_keys = ['action', 'embodiment_id', 'action_mask']
+        # For eval mode, just use embodiment_id
+        use_keys = ['action', 'embodiment_id', 'action_mask'] if not eval_model else ['embodiment_id']
         return BatchFeature(data={key: batch[key] for key in use_keys})
