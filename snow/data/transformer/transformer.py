@@ -43,26 +43,20 @@ class Transformer:
         """Set mode for training and evaluation."""
         self.image_processor.eval()
 
-    def decode_action(self, action_modality: dict, action: torch.tensor) -> dict[str, np.ndarray]:
+    def decode_action(self, action: torch.tensor) -> dict[str, np.ndarray]:
         """
         Decode tensor into action with action_modality.
         Args:
-            action (torch.tensor): [1, action_horizon, action_dimension]
+            action (torch.tensor): [batch_size, action_horizon, action_dimension]
         Returns:
             {
                 action_key: [action_horizon, action_key_dimension]
             }
         """
-        # Split into mapping joint_key -> joint_value
-        action_decoded = {}
-        for action_key, action_info in action_modality.items():
-            joint_start, joint_end = action_info['start'], action_info['end']
-            action_decoded[action_key] = action[0, :, joint_start:joint_end].detach().cpu().to(torch.float32).numpy()
-
-        return self.action_processor.decoder(action_decoded)
+        return self.action_processor.decoder(action.cpu().detach().to(dtype=torch.float32).numpy())
 
 
-    def __call__(self, step_data: dict[str, Any]) -> dict[str, Any]:
+    def __call__(self, step_data: dict[str, Any], has_action=True) -> dict[str, Any]:
         """
         Transform raw data -> normalized data for Model inputs.
         :param step_data: dictionary mapping modality key -> raw data.
@@ -72,25 +66,26 @@ class Transformer:
         normalized_images = self.image_processor(step_data['observation.images'])
 
         # Step 2. normalize actions
-        normalized_actions = self.action_processor(step_data["action"])
-        normalized_actions_torch = torch.cat(
-            [
-                torch.from_numpy(normalized_actions[action_key])
-                    for action_key in self.action_modality_keys
-            ], dim=-1,
-        )
-        # Padding action to max_action_dim
-        action_horizon, action_dimension = normalized_actions_torch.shape
-        normalized_actions_torch = torch.cat(
-            [
-                normalized_actions_torch,
-                torch.zeros(action_horizon, self.max_action_dim - action_dimension)
-            ],dim=-1,
-        )
-        action_mask = torch.ones_like(normalized_actions_torch)
-        action_mask[:, action_dimension:] = 0
-        normalized_data["action"] = normalized_actions_torch
-        normalized_data["action_mask"] = action_mask
+        if has_action:
+            normalized_actions = self.action_processor(step_data["action"])
+            normalized_actions_torch = torch.cat(
+                [
+                    torch.from_numpy(normalized_actions[action_key])
+                        for action_key in self.action_modality_keys
+                ], dim=-1,
+            )
+            # Padding action to max_action_dim
+            action_horizon, action_dimension = normalized_actions_torch.shape
+            normalized_actions_torch = torch.cat(
+                [
+                    normalized_actions_torch,
+                    torch.zeros(action_horizon, self.max_action_dim - action_dimension)
+                ],dim=-1,
+            )
+            action_mask = torch.ones_like(normalized_actions_torch)
+            action_mask[:, action_dimension:] = 0
+            normalized_data["action"] = normalized_actions_torch
+            normalized_data["action_mask"] = action_mask
 
         # Step 3. normalize images and languages
         normalized_version_language = self.version_language_processor(normalized_images, step_data["language"]['task'])

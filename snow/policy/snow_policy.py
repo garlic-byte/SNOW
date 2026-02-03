@@ -1,6 +1,8 @@
 from typing import Dict
 from abc import ABC, abstractmethod
 
+import torch
+
 from snow.config import SnowConfig, DataConfig
 from snow.data.collator.collator import DataCollator
 from snow.data.transformer.transformer import Transformer
@@ -9,12 +11,11 @@ from snow.utils import read_configs
 
 
 class BasePolicy(ABC):
-    def __init__(self, model_path: str, modality_id: str):
-        assert model_path is not None and modality_id is not None, (
+    def __init__(self, model_path: str):
+        assert model_path is not None, (
             f"model_path and modality_id are required for BasePolicy class"
         )
         self.model_path = model_path
-        self.modality_id = modality_id
         self.model = None
         self.model_config = None
         self.transformer = None
@@ -25,6 +26,8 @@ class BasePolicy(ABC):
     def get_action(self, inputs: Dict) -> Dict:
         raise NotImplementedError
 
+    def reset(self, options: dict):
+        return {}
 
 class SnowPolicy(BasePolicy):
     def __init__(self, **kwargs):
@@ -59,16 +62,16 @@ class SnowPolicy(BasePolicy):
             color_jitter=data_config.color_jitter,
             modality_id=data_config.modality_id,
             statistics=read_configs(self.model_path, "stats"),
-            max_action_dim=self.model_config["max_action_dim"]
+            max_action_dim=self.model_config.max_action_dim
         )
         self.transformer.eval()
         self.collate = DataCollator(
             processor_path=data_config.processor_path,
         )
 
-    def get_action(self, inputs: Dict) -> Dict:
+    def get_action(self, observation: Dict) -> Dict:
         """
-        Get action from inputs like:
+        Get action from observation containing:
         {
             'language':
                 {
@@ -80,6 +83,17 @@ class SnowPolicy(BasePolicy):
                 }
         }
         """
-        prepared_inputs = self.transformer(inputs)
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        # Prepare inputs use trans and collate
+        prepared_inputs = self.transformer(observation, has_action=False)
+        model_inputs = self.collate([prepared_inputs], has_action=False).to(device=device)
+
+        # Get outputs from model
+        model_outputs = self.model.get_action(model_inputs).action_pred
+
+        # Decode action
+        predict_actions = self.transformer.decode_action(model_outputs)
+        return predict_actions
+
 
 

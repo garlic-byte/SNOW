@@ -90,11 +90,10 @@ class ShardCacheDataset(IterableDataset):
         """API for setting the transform which can process images, languages and actions."""
         self.transformer = transformer
 
-    def _reset_schedules(self):
+    def _reset_schedules(self, rng):
         """Create random schedules for loading datasets."""
         self.epoch += 1
         self.cur_schedule_index = 0
-        rng = np.random.default_rng(self.seed + self.epoch)
 
         # Initialize schedules (dataset_index, episode_index, step_indices)
         random_schedules = []
@@ -133,16 +132,20 @@ class ShardCacheDataset(IterableDataset):
         """Load shard vessel data into memory."""
         count_vessel = 0
         shard_vessels = []
+        rng = np.random.default_rng(self.seed + self.epoch)
+
         while count_vessel < self.shard_size:
             # Varify schedule is sufficient
             if self.cur_schedule_index >= len(self.filter_schedules):
-                self._reset_schedules()
+                self._reset_schedules(rng)
             dataset_index, episode_index, step_indices = self.filter_schedules[self.cur_schedule_index]
             steps_data = self.datasets[dataset_index].get_steps_data(episode_index, step_indices)
             # Transformer language, images and action
             shard_vessels += [self.transformer(step_data) for step_data in steps_data]
             self.cur_schedule_index += 1
             count_vessel += len(step_indices)
+        # Random every data
+        rng.shuffle(shard_vessels)
         return shard_vessels
 
 

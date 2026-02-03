@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from snow.config import ROBOT_CONFIG
 
@@ -55,11 +56,19 @@ class ActionProcessor:
 
         return normalized_action
 
-    def decoder(self, action: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
-        """Denormalize value of action into origin range."""
+    def decoder(self, action: torch.tensor) -> dict[str, np.ndarray]:
+        """
+        Denormalize value of action into origin range.
+        :param action: np.ndarray, shape of (batch_size, action_horizon, action_dimension)
+        """
         denormalized_action = {}
-        for action_key, action_value in action.items():
+        start_index = end_index = 0
+        for action_key in self.action_modality.modality_keys:
             params = self.statistics[action_key]
-            denormalized_action[action_key] = denormalize_min_max(action_value, params)
+            end_index += len(params['max'])
+            denormalized_action[action_key] = denormalize_min_max(
+                action[..., start_index: end_index], params
+            ).squeeze()
+            start_index = end_index
 
         return denormalized_action

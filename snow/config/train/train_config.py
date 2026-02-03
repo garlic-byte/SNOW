@@ -15,7 +15,7 @@ class TrainConfig:
     output_dir: str = None
     """Path to the output directory of the training."""
 
-    max_steps: int = int(1e6)
+    max_steps: int = int(3e4)
     """Maximum number of training steps."""
 
     learning_rate: float = 1e-4

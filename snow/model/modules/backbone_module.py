@@ -62,7 +62,7 @@ class SnowBackbone(PreTrainedModel):
     @staticmethod
     def prepare_input(batch) -> BatchFeature:
         """Prepare inputs for backbone model."""
-        use_keys = ['input_ids', 'attention_mask', 'image_grid_thw']
+        use_keys = ['input_ids', 'attention_mask']
         backbone_input = {key: batch[key] for key in use_keys}
         # Reshape pixel_values and image_grid_thw for broadcasting and concatenating
         backbone_input["pixel_values"] = batch["pixel_values"].view(-1, batch["pixel_values"].shape[-1])
