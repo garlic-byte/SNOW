@@ -22,7 +22,7 @@ def run_train(model_config: SnowConfig, data_config: DataConfig, train_config: T
         learning_rate=train_config.learning_rate,
         lr_scheduler_type="cosine",
         weight_decay=1e-5,
-        warmup_ratio=0.05,
+        warmup_ratio=0.001,
         max_grad_norm=1.0,
         logging_steps=10,
         save_steps=1000,
