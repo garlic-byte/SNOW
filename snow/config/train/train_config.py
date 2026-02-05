@@ -26,3 +26,12 @@ class TrainConfig:
 
     deepspeed_config: str = None
     """DeepSpeed config for training."""
+
+    weight_decay: float = 1e-5
+    """Decay of weight."""
+
+    warmup_ratio: float = 0.01
+    """Ratio of warm up."""
+
+    max_grad_norm: float = 1.0
+    """Max gradient norm."""
