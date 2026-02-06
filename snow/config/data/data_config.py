@@ -31,7 +31,7 @@ class DataConfig:
     seed: int = 64
     """Seed for random number generator."""
 
-    inter_size: tuple[int, int] = (244, 244)
+    inter_size: tuple[int, int] = (256, 256)
     """Size of interim image."""
 
     crop_fraction: float = 0.95
