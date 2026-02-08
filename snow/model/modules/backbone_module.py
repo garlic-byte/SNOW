@@ -3,8 +3,8 @@ import os
 from sympy.printing.pytorch import torch
 
 from snow.config import SnowConfig
-from transformers import Qwen3VLForConditionalGeneration, AutoProcessor, Qwen3VLModel, PreTrainedModel, AutoConfig, \
-    AutoModel, BatchFeature
+from transformers import Qwen3VLForConditionalGeneration, Qwen3VLModel, PreTrainedModel, AutoConfig, \
+    BatchFeature, Qwen2_5_VLForConditionalGeneration, Qwen2_5_VLModel
 
 from snow.utils import print_logging
 
@@ -19,14 +19,30 @@ class SnowBackbone(PreTrainedModel):
         elif config.model_dtype == "bfloat16":
             extra_kwargs["dtype"] = torch.bfloat16
 
-        if config.model_name == "qwen3-vl":
-            qwen_config_path = os.path.join(os.path.dirname(__file__), "qwen3-vl")
+        if config.create_mode:
+            # Load model from pretrained
+            if config.model_name == "qwen3-vl":
+                self.model = Qwen3VLForConditionalGeneration.from_pretrained(
+                    config.backbone_model_path, **extra_kwargs
+                ).model
+            elif config.model_name == "qwen25-vl":
+                self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+                    config.backbone_model_path, **extra_kwargs
+                ).model
+            else:
+                raise NotImplementedError(f"{config.model_name} is not supported.")
+            config.tune_llm = config.tune_visual = config.tune_top_llm_layers = False
+        else:
+            # Load model from config
+            qwen_config_path = os.path.join(os.path.dirname(__file__), config.model_name)
             qwen_config = AutoConfig.from_pretrained(qwen_config_path, trust_remote_code=True)
             qwen_config.vision_config.update(extra_kwargs)
-            self.model = Qwen3VLModel(qwen_config)
-            # self.model = Qwen3VLForConditionalGeneration.from_pretrained(config.backbone_model_path, **extra_kwargs).model
-        else:
-            raise NotImplementedError(f"{config.model_name} is not supported.")
+            if config.model_name == "qwen3-vl":
+                self.model = Qwen3VLModel(qwen_config)
+            elif config.model_name == "qwen25-vl":
+                self.model = Qwen2_5_VLModel(qwen_config)
+            else:
+                raise NotImplementedError(f"{config.model_name} is not supported.")
 
         # Reduce partly modules from model
         while len(self.model.language_model.layers) > config.select_layer:

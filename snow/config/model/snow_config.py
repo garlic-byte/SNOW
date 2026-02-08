@@ -17,10 +17,11 @@ class SnowConfig(PretrainedConfig):
     model_type: str = "Snow"
     model_dtype: str = "bfloat16"  # Use bfloat16 for Flash Attention compatibility
     model_path: str = None
+    create_mode: bool = True
 
     # backbone configuration
-    model_name: str = "qwen3-vl"
-    backbone_model_path: str = "/home/wsj/Downloads/weights/qwen3-vl-2b"
+    model_name: str = "qwen25-vl" # "qwen3-vl"
+    backbone_model_path: str = "/home/wsj/Downloads/weights/qwen25-vl-3b" # "/home/wsj/Downloads/weights/qwen3-vl-2b"
     tune_top_llm_layers: int = 4  # Number of top LLM layers to tune
     backbone_embedding_dim: int = 2048  # project_to_dim
     tune_llm: bool = False

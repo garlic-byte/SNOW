@@ -45,12 +45,6 @@ class SnowActionHead(nn.Module):
         self.action_horizon = config.action_horizon
         self.num_inference_timesteps = config.num_inference_timesteps
 
-        # self.state_encoder = CategorySpecificMLP(
-        #     num_categories=config.max_num_embodiments,
-        #     input_dim=config.max_state_dim,
-        #     hidden_dim=self.hidden_size,
-        #     output_dim=self.input_embedding_dim,
-        # )
         self.action_encoder = MultiEmbodimentActionEncoder(
             action_dim=self.action_dim,
             hidden_size=self.input_embedding_dim,
@@ -71,19 +65,12 @@ class SnowActionHead(nn.Module):
             self.position_embedding = nn.Embedding(config.max_seq_len, self.input_embedding_dim)
             nn.init.normal_(self.position_embedding.weight, mean=0.0, std=0.02)
 
-        # State dropout parameters
-        self.state_dropout_prob = config.state_dropout_prob
-        self.mask_token = (
-            nn.Parameter(0.02 * torch.randn(1, 1, self.input_embedding_dim))
-            if self.state_dropout_prob > 0
-            else None
-        )
-
-        # State noise parameters
-        self.state_additive_noise_scale = config.state_additive_noise_scale
-
         self.beta_dist = Beta(config.noise_beta_alpha, config.noise_beta_beta)
         self.num_timestep_buckets = config.num_timestep_buckets
+
+        if config.create_mode:
+            config.tune_projector = config.tune_diffusion_model = config.tune_vlln = False
+
         self.set_trainable_parameters(
             config.tune_projector, config.tune_diffusion_model, config.tune_vlln
         )
@@ -102,8 +89,6 @@ class SnowActionHead(nn.Module):
             self.action_decoder.requires_grad_(False)
             if self.config.add_pos_embed:
                 self.position_embedding.requires_grad_(False)
-            if self.state_dropout_prob > 0:
-                self.mask_token.requires_grad_(False)
         if not tune_diffusion_model:
             self.model.requires_grad_(False)
         if not tune_vlln:
