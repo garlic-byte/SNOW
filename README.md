@@ -14,3 +14,17 @@
 -dataset: accad, joint nums: 7, step: 30,000, loss: 0.01
 
 -conclusion: less joints, less loss. (normal)
+
+-2026.02.09
+
+--dataset: libero, joint nums: 7, step: 30,000, loss: 0.05
+
+-conclusion: more datasets, more accurate in simulator
+
+
+| TASK           | result            |
+|----------------|-------------------|
+| 10 (Long)      | 173/200 (86.50%)  |
+| Goal           | 200/200 (100%)    |
+| Object         | 200/200 (100%)    |
+| Spatial        | 195/200 (97.65%)  |
