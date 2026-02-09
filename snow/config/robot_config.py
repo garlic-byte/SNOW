@@ -23,7 +23,7 @@ ROBOT_CONFIG = {
             ),
         "action":
             ModalityConfig(
-                modality_keys=["dof_pos"],
+                modality_keys=["root_pos", "root_rot", "dof_pos"],
                 delta_indices=list(range(8)),
             ),
     },
