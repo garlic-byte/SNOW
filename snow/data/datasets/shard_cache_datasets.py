@@ -183,12 +183,12 @@ class ShardCacheDataset(IterableDataset):
 
 
 if __name__ == "__main__":
-    dataset = ShardCacheDataset(
+    d1 = ShardCacheDataset(
         dataset_paths = "/home/wsj/Desktop/data/dataset/snow_datasets/accad",
         modality_id="YmBot",
         shard_size=2**10,
         vessel_length=10,
     )
-    dataset.set_transform(lambda x: x)
-    for data in dataset:
+    d1.set_transform(lambda x: x)
+    for data in d1:
         x = 1

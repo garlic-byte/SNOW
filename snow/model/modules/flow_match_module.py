@@ -219,6 +219,12 @@ class SnowActionHead(nn.Module):
         action_loss = F.mse_loss(pred_actions, velocity, reduction="none") * action_mask
         loss = action_loss.sum() / (action_mask.sum() + 1e-6)
 
+        if self.config.smooth_action_weight:
+            action_diff = torch.diff(pred_actions, dim=1)
+            relative_diff = torch.abs(action_diff) / (torch.abs(pred_actions[:, :-1, :]) + 1e-6)
+            smooth_loss_relative = torch.mean(relative_diff)
+            loss += + self.config.smooth_action_weight * smooth_loss_relative
+
         return {'loss': loss}
 
     def _encode_features(

@@ -78,6 +78,9 @@ class SnowConfig(PretrainedConfig):
     # Multi-embodiment parameters
     max_num_embodiments: int = 32
 
+    # Add smooth loss
+    smooth_action_weight = 0
+
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
