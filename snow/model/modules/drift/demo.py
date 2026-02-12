@@ -220,7 +220,13 @@ def train_toy(sampler, steps=2000, data_batch_size=2048, gen_batch_size=2048, lr
 
 # Train on Swiss Roll
 print("Training on Swiss Roll...")
-model_swiss, loss_swiss = train_toy(sample_swiss_roll, steps=2000, lr=1e-3, temp=0.05)
+model_swiss, loss_swiss = train_toy(
+    sample_swiss_roll,
+    steps=20000,
+    data_batch_size=20,
+    gen_batch_size=20,
+    lr=1e-3,
+    temp=0.05)
 
 plt.figure(figsize=(6, 3))
 plt.plot(loss_swiss, alpha=0.7)

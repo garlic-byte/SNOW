@@ -33,9 +33,9 @@ def compute_drift(gen: torch.Tensor, pos: torch.Tensor, temp: float = 0.05):
     G = gen.shape[0]
 
     dist = torch.cdist(gen, targets)
-    dist_min = dist.min()
-    dist_max = dist.max()
-    dist = (dist - dist_min) / (dist_max - dist_min + 1e-8)
+    # dist_min = dist.min()
+    # dist_max = dist.max()
+    # dist = (dist - dist_min) / (dist_max - dist_min + 1e-8)
 
     dist[:, :G].fill_diagonal_(1e6)  # mask self
     kernel = (-dist / temp).exp()  # unnormalized kernel
@@ -204,10 +204,10 @@ class DriftActionHead(nn.Module):
         # Embed noised action trajectory.
         actions = action_input.action
         noise = torch.randn(actions.shape, device=actions.device, dtype=actions.dtype)
-        t = self.sample_time(actions.shape[0], device=actions.device, dtype=actions.dtype)
+        t = torch.zeros(actions.shape[0], device=actions.device, dtype=actions.dtype)
         t = t[:, None, None]  # shape (B,1,1) for broadcast
 
-        noisy_trajectory = (1 - t) * noise + t * actions
+        noisy_trajectory = noise # (1 - t) * noise + t * actions
         # velocity = actions - noise
 
         # Convert (continuous) t -> discrete if needed
