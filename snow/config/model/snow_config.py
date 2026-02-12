@@ -80,6 +80,8 @@ class SnowConfig(PretrainedConfig):
 
     # Add smooth loss
     smooth_action_weight = 0
+    drift_temperature = 1
+
 
 
     def __init__(self, **kwargs):

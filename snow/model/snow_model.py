@@ -4,7 +4,7 @@ import tree
 import torch.cuda.nvtx as nvtx
 
 from snow.config import SnowConfig
-from snow.model.modules import SnowActionHead
+from snow.model.modules import SnowActionHead, DriftActionHead
 from snow.model.modules.backbone_module import SnowBackbone
 
 
@@ -15,7 +15,7 @@ class SnowModel(PreTrainedModel):
     def __init__(self, config: SnowConfig):
         super().__init__(config)
         self.backbone = SnowBackbone(config)
-        self.action_head = SnowActionHead(config).to(dtype=self.backbone.dtype)
+        self.action_head = DriftActionHead(config).to(dtype=self.backbone.dtype)
 
     @property
     def dtype(self):
