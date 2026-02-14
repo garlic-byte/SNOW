@@ -26,3 +26,15 @@
 | Goal           | 200/200 (100%)    |
 | Object         | 200/200 (100%)    |
 | Spatial        | 195/200 (97.65%)  |
+
+
+### 2026.02.14
+
+#### dataset: libero_10, joint nums: 7, step: 30,000, loss: 0.03
+
+#### conclusion: pre-train + post-train, less loss.
+
+
+| TASK           | result            |
+|----------------|-------------------|
+| 10 (Long)      | 177/200 (88.50%)  |
