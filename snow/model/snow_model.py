@@ -15,7 +15,7 @@ class SnowModel(PreTrainedModel):
     def __init__(self, config: SnowConfig):
         super().__init__(config)
         self.backbone = SnowBackbone(config)
-        self.action_head = DriftActionHead(config).to(dtype=self.backbone.dtype)
+        self.action_head = SnowActionHead(config).to(dtype=self.backbone.dtype)
 
     @property
     def dtype(self):

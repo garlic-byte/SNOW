@@ -34,6 +34,7 @@ class DataPipeline:
             modality_id=data_config.modality_id,
             statistics=self.dataset.get_statistics(),
             max_action_dim=data_config.max_action_dim,
+            max_action_horizon=data_config.max_action_horizon,
         )
         self.transformer.train()
         self.dataset.set_transform(self.transformer)

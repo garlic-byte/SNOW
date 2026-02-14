@@ -17,11 +17,13 @@ class Transformer:
         modality_id: str = None,
         statistics: dict = None,
         max_action_dim=None,
+        max_action_horizon=None,
     ):
         self.processor_path = processor_path
         self.version_language_processor = VisionLanguageProcessor(processor_path)
         self.action_modality_keys = ROBOT_CONFIG[modality_id]['action'].modality_keys
         self.max_action_dim = max_action_dim
+        self.max_action_horizon = max_action_horizon
 
         self.image_processor = ImageProcessor(
             inter_size=inter_size,
@@ -82,8 +84,17 @@ class Transformer:
                     torch.zeros(action_horizon, self.max_action_dim - action_dimension)
                 ],dim=-1,
             )
+            # Padding action to max_action_horizon
+            normalized_actions_torch = torch.cat(
+                [
+                    normalized_actions_torch,
+                    torch.zeros(self.max_action_horizon - action_horizon, self.max_action_dim)
+                ],dim=0,
+            )
+            # Generate mask for action
             action_mask = torch.ones_like(normalized_actions_torch)
             action_mask[:, action_dimension:] = 0
+            action_mask[action_horizon:, :] = 0
             normalized_data["action"] = normalized_actions_torch
             normalized_data["action_mask"] = action_mask
 
