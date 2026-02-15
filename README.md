@@ -41,10 +41,11 @@
 
 ### 2026.02.15
 
-#### use drift method 
-
-#### dataset: libero, joint nums: 7, step: 30,000, loss: 0.03
+#### use drift method dataset: libero, joint nums: 7, step: 30,000, loss: 0.03
 
 #### simulator result
+
+#### add action-horzion to 16, dataset: libero, joint nums: 7, step: 30,000, loss: 0.06
+
 
 
