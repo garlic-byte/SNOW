@@ -38,3 +38,13 @@
 | TASK           | result            |
 |----------------|-------------------|
 | 10 (Long)      | 177/200 (88.50%)  |
+
+### 2026.02.15
+
+#### use drift method 
+
+#### dataset: libero, joint nums: 7, step: 30,000, loss: 0.03
+
+#### simulator result
+
+
