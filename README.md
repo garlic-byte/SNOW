@@ -43,7 +43,7 @@
 
 #### use drift method dataset: libero, joint nums: 7, step: 30,000, loss: 0.03
 
-#### simulator result
+#### simulator result: 0.0, code must be revise.
 
 #### add action-horzion to 16, dataset: libero, joint nums: 7, step: 30,000, loss: 0.06
 
