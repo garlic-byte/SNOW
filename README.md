@@ -47,5 +47,10 @@
 
 #### add action-horzion to 16, dataset: libero, joint nums: 7, step: 30,000, loss: 0.06
 
+### 2026.02.17
+
+#### use qwen25-vl-3b method dataset: libero, joint nums: 7, step: 30,000, loss:
+
+
 
 
