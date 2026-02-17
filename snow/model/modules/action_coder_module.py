@@ -221,3 +221,69 @@ class MultiEmbodimentActionEncoder(nn.Module):
         self.W1.expand_action_dimension(
             old_action_dim, new_action_dim, expand_input=True, expand_output=False
         )
+
+class SingleEmbodimentActionEncoder(nn.Module):
+    """Action encoder with single-embodiment support and sinusoidal positional encoding."""
+
+    def __init__(self, action_dim, hidden_size):
+        super().__init__()
+        self.hidden_size = hidden_size
+
+        # W1: R^{w x d}, W2: R^{w x 2w}, W3: R^{w x w}
+        self.W1 = nn.Linear(action_dim, hidden_size)
+        self.W2 = nn.Linear(2 * hidden_size, hidden_size)
+        self.W3 = nn.Linear(hidden_size, hidden_size)
+        self.pos_encoding = SinusoidalPositionalEncoding(hidden_size)
+
+    def forward(self, actions, timesteps):
+        """
+        Args:
+            actions: [B, T, action_dim] action tensor
+            timesteps: [B,] timesteps - a single scalar per batch item
+        Returns:
+            [B, T, hidden_size] encoded action features
+        """
+        B, T, _ = actions.shape
+
+        # 1) Expand each batch's single scalar time 'tau' across all T steps
+        #    so that shape => (B, T)
+        #    e.g. if timesteps is (B,), replicate across T
+        if timesteps.dim() == 1 and timesteps.shape[0] == B:
+            # shape (B,) => (B,T)
+            timesteps = timesteps.unsqueeze(1).expand(-1, T)
+        else:
+            raise ValueError(
+                "Expected `timesteps` to have shape (B,) so we can replicate across T."
+            )
+
+        # 2) Standard action MLP step for shape => (B, T, w)
+        a_emb = self.W1(actions)
+
+        # 3) Get the sinusoidal encoding (B, T, w)
+        tau_emb = self.pos_encoding(timesteps).to(dtype=a_emb.dtype)
+
+        # 4) Concat along last dim => (B, T, 2w), then W2 => (B, T, w), swish
+        x = torch.cat([a_emb, tau_emb], dim=-1)
+        x = swish(self.W2(x))
+
+        # 5) Finally W3 => (B, T, w)
+        x = self.W3(x)
+        return x
+    
+class NormalMLP(nn.Module):
+    """Two-layer MLP with normal weights for single-embodiment support."""
+
+    def __init__(self, input_dim, hidden_dim, output_dim):
+        super().__init__()
+        self.layer1 = nn.Linear(input_dim, hidden_dim)
+        self.layer2 = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        """
+        Args:
+            x: [B, T, input_dim] input tensor
+        Returns:
+            [B, T, output_dim] output tensor
+        """
+        hidden = F.relu(self.layer1(x))
+        return self.layer2(hidden)
