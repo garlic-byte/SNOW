@@ -49,7 +49,7 @@
 
 ### 2026.02.17
 
-#### use qwen25-vl-3b method dataset: libero, joint nums: 7, step: 30,000, loss:
+#### use qwen25-vl-3b method dataset: libero, joint nums: 7, step: 30,000, loss: 0.09
 
 
 
