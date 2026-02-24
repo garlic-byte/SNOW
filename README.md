@@ -53,6 +53,8 @@
 
 ### 2026.02.23
 
-#### use qwen3-vl-2b method，remake flow_matching_head, dataset: libero, joint nums: 7, step: 30,000,
+#### use qwen3-vl-2b method，remake flow_matching_head, dataset: libero, joint nums: 7, step: 30,000, loss: 0.07
+
+
 
 

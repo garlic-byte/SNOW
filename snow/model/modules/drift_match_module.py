@@ -324,6 +324,7 @@ class DriftActionHead(nn.Module):
             device=device,
         )
 
+        self.num_inference_timesteps = 1
         dt = 1.0 / self.num_inference_timesteps
 
         # Run denoising steps.
@@ -366,7 +367,7 @@ class DriftActionHead(nn.Module):
             pred_velocity = pred[:, -self.action_horizon :]
 
             # Update actions using euler integration.
-            actions = actions + dt * pred_velocity
+            actions = pred_velocity
         return BatchFeature(
             data={
                 "action_pred": actions,

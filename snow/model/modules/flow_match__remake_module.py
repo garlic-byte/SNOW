@@ -1,6 +1,3 @@
-from typing import Tuple
-
-from functorch.dim import use_c
 
 from snow.config.model import SnowConfig
 from snow.model.modules import (
