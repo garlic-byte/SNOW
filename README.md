@@ -56,5 +56,8 @@
 #### use qwen3-vl-2b method，remake flow_matching_head, dataset: libero, joint nums: 7, step: 30,000, loss: 0.07
 
 
+### 2026.02.24
 
+#### use qwen3-vl-2b method，remake flow_matching_head, input_embedding_dim: 2048, dataset: libero, step: 30,000, loss: 0.06
 
+#### use qwen3-vl-2b method，remake flow_matching_head, hidden_size: 2048, dataset: libero, step: 30,000, loss:
