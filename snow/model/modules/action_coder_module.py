@@ -222,6 +222,23 @@ class MultiEmbodimentActionEncoder(nn.Module):
             old_action_dim, new_action_dim, expand_input=True, expand_output=False
         )
 
+class NormLinear(nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super().__init__()
+        self.W = nn.Parameter(0.02 * torch.randn(1, input_dim, hidden_dim))
+        self.b = nn.Parameter(torch.zeros((1, 1, hidden_dim)))
+
+    def forward(self, x):
+        """
+        Args:
+            x: [B, T, input_dim] input tensor
+        Returns:
+            [B, T, hidden_dim] output tensor
+        """
+        w_expand = self.W.expand(x.shape[0], -1, -1)
+        x = torch.bmm(x, w_expand) # [B, T, hidden_dim]
+        return x + self.b
+
 class SingleEmbodimentActionEncoder(nn.Module):
     """Action encoder with single-embodiment support and sinusoidal positional encoding."""
 
@@ -230,9 +247,9 @@ class SingleEmbodimentActionEncoder(nn.Module):
         self.hidden_size = hidden_size
 
         # W1: R^{w x d}, W2: R^{w x 2w}, W3: R^{w x w}
-        self.W1 = nn.Linear(action_dim, hidden_size)
-        self.W2 = nn.Linear(2 * hidden_size, hidden_size)
-        self.W3 = nn.Linear(hidden_size, hidden_size)
+        self.W1 = NormLinear(action_dim, hidden_size)
+        self.W2 = NormLinear(2 * hidden_size, hidden_size)
+        self.W3 = NormLinear(hidden_size, hidden_size)
         self.pos_encoding = SinusoidalPositionalEncoding(hidden_size)
 
     def forward(self, actions, timesteps):
@@ -275,8 +292,8 @@ class NormalMLP(nn.Module):
 
     def __init__(self, input_dim, hidden_dim, output_dim):
         super().__init__()
-        self.layer1 = nn.Linear(input_dim, hidden_dim)
-        self.layer2 = nn.Linear(hidden_dim, output_dim)
+        self.layer1 = NormLinear(input_dim, hidden_dim)
+        self.layer2 = NormLinear(hidden_dim, output_dim)
 
     def forward(self, x):
         """

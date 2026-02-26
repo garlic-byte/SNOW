@@ -173,7 +173,7 @@ class ShardCacheDataset(IterableDataset):
             start_time = time.time()
             self.wait_load_data()
             end_time = time.time()
-            print(f"[Data load time]: {end_time - start_time:.2f} seconds", )
+            # print(f"[Data load time]: {end_time - start_time:.2f} seconds", )
 
             # Immediately load next data
             self.start_load_data()
