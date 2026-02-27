@@ -60,4 +60,8 @@
 
 #### use qwen3-vl-2b method，remake flow_matching_head, input_embedding_dim: 2048, dataset: libero, step: 30,000, loss: 0.06
 
-#### use qwen3-vl-2b method，remake flow_matching_head, hidden_size: 2048, dataset: libero, step: 30,000, loss:
+#### use qwen3-vl-2b method，remake flow_matching_head, hidden_size: 2048, dataset: libero, step: 30,000, loss: 0.06
+
+### 2026.02.27
+
+#### use qwen3-vl-2b method，remake qwen3, select_layer: 24, dataset: libero, step: 30,000, loss: 
