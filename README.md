@@ -64,4 +64,6 @@
 
 ### 2026.02.27
 
-#### use qwen3-vl-2b method，remake qwen3, select_layer: 24, dataset: libero, step: 30,000, loss: 
+#### use qwen3-vl-2b method，remake qwen3, dataset: libero, step: 30,000, loss: 0.05
+
+#### use qwen3-vl-2b method，remake qwen3, select_layer: 24, dataset: libero, step: 30,000, loss: 0.06
