@@ -71,3 +71,9 @@
 ### 2026.03.02
 
 #### use qwen3-vl-2b method，pre-train qwen3, constant lr:0.04, dataset: libero, step: 30,000, loss: 0.05
+
+#### use qwen3-vl-2b method，post-train qwen3, dataset: libero, step: 30,000, loss: 0.03
+
+| TASK           | result            |
+|----------------|-------------------|
+| 10 (Long)      | 182/200 (91%)  |
