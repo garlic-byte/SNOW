@@ -1,21 +1,5 @@
 ## Partial visualization results from the libero dataset
-### task 1：KITCHEN_SCENE6_put_the_yellow_and_white_mug_in_the_microwave_and_close_it_ac8
-<video src="outputs/KITCHEN_SCENE6_put_the_yellow_and_white_mug_in_the_microwave_and_close_it_ac8.mp4" width="720" controls></video>
-
-### task 2：KITCHEN_SCENE8_put_both_moka_pots_on_the_stove
-<video src="outputs/KITCHEN_SCENE8_put_both_moka_pots_on_the_stove_ac8.mp4" width="720" controls></video>
-
-### task 3：LIVING_ROOM_SCENE2_put_both_the_alphabet_soup_and_the_tomato_sauce_in_the_basket
-<video src="outputs/LIVING_ROOM_SCENE2_put_both_the_alphabet_soup_and_the_tomato_sauce_in_the_basket_ac8.mp4" width="720" controls></video>
-
-### task LIVING_ROOM_SCENE6_put_the_white_mug_on_the_plate_and_put_the_chocolate_pudding_to_the_right_of_the_plate
-<video src="outputs/LIVING_ROOM_SCENE6_put_the_white_mug_on_the_plate_and_put_the_chocolate_pudding_to_the_right_of_the_plate_ac8.mp4" width="720" controls></video>
-
-Here's a sample video:
-
-### 任务演示：将黄白色马克杯放入微波炉并关闭门
-<video src="https://github.com/garlic-byte/SNOW/raw/main/outputs/KITCHEN_SCENE6_put_the_yellow_and_white_mug_in_the_microwave_and_close_it_ac8.mp4" width="720" controls="controls"></video>
-
+### (https://github.com/garlic-byte/SNOW/tree/main/outputs)
 
 ## LOG
 ### 2026.01.30
