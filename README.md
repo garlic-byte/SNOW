@@ -13,7 +13,9 @@
 
 Here's a sample video:
 
-![Sample Video](outputs/LIVING_ROOM_SCENE6_put_the_white_mug_on_the_plate_and_put_the_chocolate_pudding_to_the_right_of_the_plate_ac8.mp4)
+### 任务演示：将黄白色马克杯放入微波炉并关闭门
+<video src="https://github.com/garlic-byte/SNOW/raw/main/outputs/KITCHEN_SCENE6_put_the_yellow_and_white_mug_in_the_microwave_and_close_it_ac8.mp4" width="720" controls="controls"></video>
+
 
 ## LOG
 ### 2026.01.30
