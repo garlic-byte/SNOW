@@ -80,3 +80,8 @@
 | TASK           | result            |
 |----------------|-------------------|
 | 10 (Long)      | 182/200 (91%)  |
+
+
+### 2026.03.11
+
+#### use qwen3-vl-2b method，pre-train + post-train, lr:0.04, dataset: BMLmovi, step: 30,000, loss: 0.02
